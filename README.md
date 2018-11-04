@@ -1,6 +1,6 @@
 # StateElement
 
-This tiny library (2Kb) uses **DOM Events** as messangers for state change. The working filosofy is very similar to the one of Reddux or Flux (nothing new here), but tries to use the DOM capabilities as much as possible. Reddux for example had to re-implement the Event structure since it's only possible to attach listeners (or dispatch events) to DOM elements, **webcomponents** live in the DOM so they can leverage this functionality for free.
+This tiny library (2Kb) uses **DOM Events** as messangers for state change. The working filosofy is very similar to the one of Reddux or Flux (nothing new here), but tries to use the DOM capabilities as much as possible. Reddux for example had to re-implement the Event structure since it's only possible to attach listeners (or dispatch events) to DOM elements, **custom elements** live in the DOM so they can leverage this functionality for free.
 
 ### Few Features:
 
