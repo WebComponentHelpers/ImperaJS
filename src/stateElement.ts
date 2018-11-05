@@ -28,7 +28,7 @@ export class StateVariable {
     set value(val:any){
         let push_var = val;
         
-        console.log('setting value to: '+this.name);
+        //console.log('setting value to: '+this.name);
 
         if( typeof(val) === this.type ) {
             if(this.type !== 'string')  push_var = JSON.stringify(val);
@@ -38,7 +38,7 @@ export class StateVariable {
 
     get value():any{
         
-        console.log('getting value of: '+this.name);
+        //console.log('getting value of: '+this.name);
 
         let return_val = localStorage.getItem(this.name);
         if(this.type !== 'string')
@@ -49,7 +49,7 @@ export class StateVariable {
     
     updateHandler( event:CustomEvent) :void {
 
-        console.log('Handling event UPDATE: '+this.name);
+        //console.log('Handling event UPDATE: '+this.name);
 
         if( typeof(event.detail.value) === this.type ) {
             
@@ -64,19 +64,26 @@ export class StateVariable {
     }
 
     watchHanlder( event:CustomEvent) :void {
-        console.log('Adding element to watchlist of: '+this.name);
+        //console.log('Adding element to watchlist of: '+this.name);
 
         // add element to the watcher list
         this.callbackMap.set(event.target, event.detail.update);
     }
 
     detachHanlder( event:CustomEvent) :void {
-        console.log('Removing element from watchlist of: '+this.name);
+        //console.log('Removing element from watchlist of: '+this.name);
 
         // remove element from watcher list
         this.callbackMap.delete(event.target);
     }
 }
+
+
+
+// FIXME: 
+// - this will fail in comunication with state enhanced custom elements
+//   in the case each view manage its state, a CE can be then defined previously 
+//   in another view and is re-used in the current view loaded lazily
 
 export class stateElement extends HTMLElement{
 
@@ -94,11 +101,11 @@ export class stateElement extends HTMLElement{
         for (let state of this.stateList) {
 
             if( state.behaviour === stateBehaviour.NORMAL){
-              console.log('adding event listeners: ', 'UPDATE-' + state.name ) ;
+              //console.log('adding event listeners: ', 'UPDATE-' + state.name ) ;
               this.addEventListener('UPDATE-' + state.name, state.updateHandler.bind(state) );
-              console.log('adding event listeners: ', 'WATCH-' + state.name ) ;
+              //console.log('adding event listeners: ', 'WATCH-' + state.name ) ;
               this.addEventListener('WATCH-' + state.name, state.watchHanlder.bind(state) );
-              console.log('adding event listeners: ', 'DETACH-' + state.name ) ;
+              //console.log('adding event listeners: ', 'DETACH-' + state.name ) ;
               this.addEventListener('DETACH-' + state.name, state.detachHanlder.bind(state) );
             }
         }
@@ -114,6 +121,7 @@ export class stateElement extends HTMLElement{
 //  - solve the fact that we don't know type of state if pass only string, maybe pass a tuple
 //  - add a check if the WATCH event has been caught, so send an error if StateManager defined after custom element
 //  - Problem: maybe I just want access to the stateVariable but don't want to watch.
+//  - make test machinery
 
 export let statesMixin = (baseClass, listOfStates:Array<string>) => class extends baseClass {
 
@@ -125,11 +133,11 @@ export let statesMixin = (baseClass, listOfStates:Array<string>) => class extend
     _addGetterSetters():void{
         for( let state of listOfStates){
             
-            console.log('adding getter and setters for: ', state);
+            //console.log('adding getter and setters for: ', state);
 
             Object.defineProperty(this, state, {
                 set: (val) => { 
-                    console.log('dispatching UPDATE-'+state+' with value: ', val);
+                    //console.log('dispatching UPDATE-'+state+' with value: ', val);
                     let event = new CustomEvent('UPDATE-'+state, { bubbles:true, detail:{'value':val} }); 
                     this.dispatchEvent(event);
                 },
@@ -139,7 +147,7 @@ export let statesMixin = (baseClass, listOfStates:Array<string>) => class extend
     }
         
     connectedCallback(){
-        console.log('Im connected, running connected callback');
+        //console.log('Im connected, running connected callback');
         if(super['connectedCallback'] !== undefined) {
             super.connectedCallback();
         }
@@ -147,7 +155,7 @@ export let statesMixin = (baseClass, listOfStates:Array<string>) => class extend
         for (let state of listOfStates) {
             let update = this['on_update_'+state].bind(this);
             let event = new CustomEvent('WATCH-'+state, { bubbles:true, detail:{'update':update} });
-            console.log('----> dispatching event: ', 'WATCH-'+state);
+            //console.log('----> dispatching event: ', 'WATCH-'+state);
             this.dispatchEvent(event);
         }
     }
