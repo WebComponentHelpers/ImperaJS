@@ -5,6 +5,7 @@ export enum stateBehaviour{
     READONLY = 'READONLY',   // will not have data binding
 }
 
+var _statewatchdog = 0;
 
 export class StateVariable {
     name : string;
@@ -12,6 +13,7 @@ export class StateVariable {
     default_val : any ;
     behaviour : stateBehaviour;
     callbackMap : Map<object,Function> ;
+    st_callbackMap: Map<object,Function> ;
 
     constructor(NAME:string, TYPE:string, BEHAVIOUR:stateBehaviour){
         this.name = NAME;
@@ -19,10 +21,15 @@ export class StateVariable {
         this.behaviour = BEHAVIOUR;
         this.callbackMap = new Map();
         this.default_val = '100';                 // FIXME default value problem
+        this.st_callbackMap = null;
 
         // set localstorage variable if none
         if(localStorage.getItem(this.name) === null) 
             localStorage.setItem(this.name, this.default_val);
+    }
+
+    setTransitionsMap(map:Map<object,Function>):void {
+        this.st_callbackMap = map;
     }
 
     set value(val:any){
@@ -50,6 +57,9 @@ export class StateVariable {
     updateHandler( event:CustomEvent) :void {
 
         //console.log('Handling event UPDATE: '+this.name);
+        if(_statewatchdog >= 10000) _statewatchdog = 0;
+        else _statewatchdog++;
+        let sanity_check = _statewatchdog;
 
         if( typeof(event.detail.value) === this.type ) {
             
@@ -61,6 +71,8 @@ export class StateVariable {
             }
         }
         else console.log('ERR: stateVariable - ' + this.name + ' forbidden value type.');
+        
+        if(sanity_check !== _statewatchdog) throw Error('State variables update is forbidden within a data update callback.');
     }
 
     watchHanlder( event:CustomEvent) :void {
@@ -88,11 +100,15 @@ export class StateVariable {
 export class stateElement extends HTMLElement{
 
     stateList: Array<StateVariable>;
+    transitionsList: Array<string>;
+    transitionsMap: Map<object,Function>;
 
     constructor(){
         super();
 
         this.stateList = [];
+        this.transitionsList = [];
+        this.transitionsMap = new Map();
     }
 
     connectedCallback(){

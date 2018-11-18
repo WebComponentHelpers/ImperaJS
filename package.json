@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "description": "A web component as manager for app state",
   "main": "index.js",
+  "types": "src/stateElement.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -16,8 +17,8 @@
     "state",
     "managment"
   ],
-  "author": "Ale",
-  "license": "ISC",
+  "author": "panmanfredini",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/panManfredini/StateElement/issues"
   },
