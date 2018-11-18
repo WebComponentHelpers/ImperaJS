@@ -6,31 +6,77 @@ export enum stateBehaviour{
 }
 
 var _statewatchdog = 0;
+const _transitions_callbackMap :  Map<object,Map<object,Function>> = new Map();
 
-export class StateVariable {
+
+export class StateTransition {
     name : string;
+    callbackMap : Map<object,Function> ;
+    usrDefined_transition: Function;
+
+    constructor(NAME:string){
+        this.name = NAME;
+        this.callbackMap = new Map();
+        this.usrDefined_transition = undefined;
+    }
+
+    updateHandler( event:CustomEvent) :void {
+
+        //console.log('Handling event UPDATE: '+this.name);
+        if(_statewatchdog >= 10000) _statewatchdog = 0;
+        else _statewatchdog++;
+        let sanity_check = _statewatchdog;
+        
+        this.usrDefined_transition(event);
+
+        // loop over watchers callbacks
+        for( let update_callback of this.callbackMap.values()){
+                update_callback(event.detail.value); // FIXME this will fail
+        }
+
+        // loop over automatically added callbacks to _transitions_callbackMap
+        for( let state_callbackmap of _transitions_callbackMap.values()){  // FIXME: can't we unify the above with this loop??
+            for (let upd_callback of state_callbackmap.values()){
+                // FIXME: shit missing value to pass to callbacks!
+            }
+        }
+
+        if(sanity_check !== _statewatchdog) throw Error('State variables update is forbidden within a data update callback.');
+    }
+
+    watchHanlder( event:CustomEvent) :void {
+        //console.log('Adding element to watchlist of: '+this.name);
+
+        // add element to the watcher list
+        this.callbackMap.set(event.target, event.detail.update);
+    }
+
+    detachHanlder( event:CustomEvent) :void {
+        //console.log('Removing element from watchlist of: '+this.name);
+
+        // remove element from watcher list
+        this.callbackMap.delete(event.target);
+    }
+
+}
+
+export class StateVariable extends StateTransition{
     type : string;
     default_val : any ;
     behaviour : stateBehaviour;
-    callbackMap : Map<object,Function> ;
-    st_callbackMap: Map<object,Function> ;
 
     constructor(NAME:string, TYPE:string, BEHAVIOUR:stateBehaviour){
-        this.name = NAME;
+        super(NAME);
         this.type = TYPE;
         this.behaviour = BEHAVIOUR;
-        this.callbackMap = new Map();
         this.default_val = '100';                 // FIXME default value problem
-        this.st_callbackMap = null;
+        this.usrDefined_transition = this.update_value;  // FIXME: what is this shit??
 
         // set localstorage variable if none
         if(localStorage.getItem(this.name) === null) 
             localStorage.setItem(this.name, this.default_val);
     }
 
-    setTransitionsMap(map:Map<object,Function>):void {
-        this.st_callbackMap = map;
-    }
 
     set value(val:any){
         let push_var = val;
@@ -54,40 +100,15 @@ export class StateVariable {
         return return_val;
     }
     
-    updateHandler( event:CustomEvent) :void {
-
-        //console.log('Handling event UPDATE: '+this.name);
-        if(_statewatchdog >= 10000) _statewatchdog = 0;
-        else _statewatchdog++;
-        let sanity_check = _statewatchdog;
-
+    update_value(event:CustomEvent):void {  // FIXME maybe returning bool: success or failure??
         if( typeof(event.detail.value) === this.type ) {
             
             this.value = event.detail.value;
 
-            // loop over watchers callbacks
-            for( let update_callback of this.callbackMap.values()){
-                update_callback(event.detail.value);
-            }
         }
         else console.log('ERR: stateVariable - ' + this.name + ' forbidden value type.');
-        
-        if(sanity_check !== _statewatchdog) throw Error('State variables update is forbidden within a data update callback.');
     }
 
-    watchHanlder( event:CustomEvent) :void {
-        //console.log('Adding element to watchlist of: '+this.name);
-
-        // add element to the watcher list
-        this.callbackMap.set(event.target, event.detail.update);
-    }
-
-    detachHanlder( event:CustomEvent) :void {
-        //console.log('Removing element from watchlist of: '+this.name);
-
-        // remove element from watcher list
-        this.callbackMap.delete(event.target);
-    }
 }
 
 
