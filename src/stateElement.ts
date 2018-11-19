@@ -5,7 +5,7 @@ export enum stateBehaviour{
     READONLY = 'READONLY',   // will not have data binding
 }
 
-var _statewatchdog = 0;
+var _isCallback_locked = false;
 const _transitions_callbackMap :  Map<Map<object,Function>,any> = new Map();
 
 
@@ -20,13 +20,24 @@ export class StateTransition {
         this.usrDefined_transition = undefined;
     }
 
+    lock_callbacks(event:CustomEvent){
+        if(_isCallback_locked) {
+            console.log('The following target has dispatched a '+ this.name +' event during a UI update callback:');
+            console.log(event.target);
+            throw Error('Forbidden multiple-update during an update callback loop.');
+        } 
+        else  _isCallback_locked = true;
+    }
+
+    unlock_callbacks(){
+        _isCallback_locked = false;
+    }
+
     updateHandler( event:CustomEvent) :void {
 
         console.log('Handling event UPDATE from stateTransition: '+this.name);
-        (_statewatchdog >= 10000) ? _statewatchdog = 0 :  _statewatchdog++;
-        
-        let sanity_check = _statewatchdog;
-        
+        this.lock_callbacks(event);
+
         this.usrDefined_transition(event);
 
         // loop over watchers callbacks
@@ -41,8 +52,7 @@ export class StateTransition {
             }
         }
         _transitions_callbackMap.clear();
-
-        if(sanity_check !== _statewatchdog) throw Error('State variables update is forbidden within a data update callback.');
+        this.unlock_callbacks();
     }
 
     watchHanlder( event:CustomEvent) :void {
@@ -82,7 +92,6 @@ export class StateVariable extends StateTransition{
         let push_var = val;
         
         //console.log('setting value to: '+this.name);
-
         if( typeof(val) === this.type ) {
             if(this.type !== 'string')  push_var = JSON.stringify(val);
             localStorage.setItem(this.name, push_var);
@@ -108,10 +117,8 @@ export class StateVariable extends StateTransition{
     updateHandler( event:CustomEvent) :void {
 
         console.log('Handling event UPDATE from state variable: '+this.name);
-        (_statewatchdog >= 10000) ? _statewatchdog = 0 :  _statewatchdog++;
-        
-        let sanity_check = _statewatchdog;
-        
+        this.lock_callbacks(event);
+
         if( typeof(event.detail.value) === this.type ) {
                 
             this.value = event.detail.value;
@@ -123,8 +130,8 @@ export class StateVariable extends StateTransition{
         for( let update_callback of this.callbackMap.values()){
                 update_callback(event.detail.value); 
         }
-        if(sanity_check !== _statewatchdog) throw Error('State variables update is forbidden within a data update callback.');
-
+        
+        this.unlock_callbacks();
     }
     
 

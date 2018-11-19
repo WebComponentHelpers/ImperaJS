@@ -3,11 +3,11 @@
   "version": "0.0.0",
   "description": "A web component as manager for app state",
   "main": "build/stateElement.js",
-  "types": "stateElement.ts",
+  "types": "src/stateElement.ts",
   "scripts": {
     "build": "tsc",
     "test": "tsc; firefox http://127.0.0.1:8080/test/ ; http-server ",
-    "watch": "tsc -t es2018 --outDir build/ -w src/brick.ts "
+    "watch": "tsc -t es2018 --outDir build/ -w src/stateElement.ts "
   },
   "repository": {
     "type": "git",
@@ -16,7 +16,7 @@
   "keywords": [
     "web-component",
     "webcomponent",
-    "state",
+    "state", "app-state","event","events",
     "managment"
   ],
   "author": "panmanfredini",
@@ -28,6 +28,9 @@
   "devDependencies": {
     "chai": "^4.2.0",
     "http-server": "^0.11.1",
-    "mocha": "^5.2.0"
-  }
+    "mocha": "^5.2.0",
+    "tslint": "^5.11.0",
+    "typescript": "^3.1.6"
+  },
+  "dependencies": {}
 }
