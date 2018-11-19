@@ -6,7 +6,7 @@ export enum stateBehaviour{
 }
 
 var _statewatchdog = 0;
-const _transitions_callbackMap :  Map<object,Map<object,Function>> = new Map();
+const _transitions_callbackMap :  Map<Map<object,Function>,any> = new Map();
 
 
 export class StateTransition {
@@ -22,24 +22,25 @@ export class StateTransition {
 
     updateHandler( event:CustomEvent) :void {
 
-        //console.log('Handling event UPDATE: '+this.name);
-        if(_statewatchdog >= 10000) _statewatchdog = 0;
-        else _statewatchdog++;
+        console.log('Handling event UPDATE from stateTransition: '+this.name);
+        (_statewatchdog >= 10000) ? _statewatchdog = 0 :  _statewatchdog++;
+        
         let sanity_check = _statewatchdog;
         
         this.usrDefined_transition(event);
 
         // loop over watchers callbacks
         for( let update_callback of this.callbackMap.values()){
-                update_callback(event.detail.value); // FIXME this will fail
+                update_callback(event.detail); 
         }
 
         // loop over automatically added callbacks to _transitions_callbackMap
-        for( let state_callbackmap of _transitions_callbackMap.values()){  // FIXME: can't we unify the above with this loop??
-            for (let upd_callback of state_callbackmap.values()){
-                // FIXME: shit missing value to pass to callbacks!
+        for( let [map,val] of _transitions_callbackMap){  
+            for (let upd_callback of map.values()){
+                upd_callback(val);
             }
         }
+        _transitions_callbackMap.clear();
 
         if(sanity_check !== _statewatchdog) throw Error('State variables update is forbidden within a data update callback.');
     }
@@ -70,7 +71,6 @@ export class StateVariable extends StateTransition{
         this.type = TYPE;
         this.behaviour = BEHAVIOUR;
         this.default_val = '100';                 // FIXME default value problem
-        this.usrDefined_transition = this.update_value;  // FIXME: what is this shit??
 
         // set localstorage variable if none
         if(localStorage.getItem(this.name) === null) 
@@ -100,17 +100,51 @@ export class StateVariable extends StateTransition{
         return return_val;
     }
     
-    update_value(event:CustomEvent):void {  // FIXME maybe returning bool: success or failure??
-        if( typeof(event.detail.value) === this.type ) {
-            
-            this.value = event.detail.value;
+    set auto_value(val:any){
+        this.value = val;
+        _transitions_callbackMap.set(this.callbackMap, val);
+    }
 
+    updateHandler( event:CustomEvent) :void {
+
+        console.log('Handling event UPDATE from state variable: '+this.name);
+        (_statewatchdog >= 10000) ? _statewatchdog = 0 :  _statewatchdog++;
+        
+        let sanity_check = _statewatchdog;
+        
+        if( typeof(event.detail.value) === this.type ) {
+                
+            this.value = event.detail.value;
+    
         }
         else console.log('ERR: stateVariable - ' + this.name + ' forbidden value type.');
+
+        // loop over watchers callbacks
+        for( let update_callback of this.callbackMap.values()){
+                update_callback(event.detail.value); 
+        }
+        if(sanity_check !== _statewatchdog) throw Error('State variables update is forbidden within a data update callback.');
+
     }
+    
 
 }
 
+export class Message extends StateTransition{
+    updateHandler( event:CustomEvent) :void {
+
+        console.log('Handling event MESSAGE from message: '+this.name);
+        // (_statewatchdog >= 10000) ? _statewatchdog = 0 :  _statewatchdog++;
+        
+        /// let sanity_check = _statewatchdog;
+        // loop over watchers callbacks
+        for( let message_callback of this.callbackMap.values()){
+                message_callback(event.detail); 
+        }
+        // if(sanity_check !== _statewatchdog) throw Error('State variables update is forbidden within a data update callback.');
+
+    }
+}
 
 
 // FIXME: 
@@ -122,14 +156,12 @@ export class stateElement extends HTMLElement{
 
     stateList: Array<StateVariable>;
     transitionsList: Array<string>;
-    transitionsMap: Map<object,Function>;
 
     constructor(){
         super();
 
         this.stateList = [];
         this.transitionsList = [];
-        this.transitionsMap = new Map();
     }
 
     connectedCallback(){
@@ -160,7 +192,7 @@ export class stateElement extends HTMLElement{
 //  - Problem: maybe I just want access to the stateVariable but don't want to watch.
 //  - make test machinery
 
-export let statesMixin = (baseClass, listOfStates:Array<string>) => class extends baseClass {
+export let statesMixin = (baseClass:any, listOfStates:Array<string>) => class extends baseClass {
 
     constructor(){
         super();
