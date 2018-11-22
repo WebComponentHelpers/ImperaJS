@@ -6,12 +6,12 @@ export enum stateBehaviour{
 }
 
 var _isCallback_locked = false;
-const _transitions_callbackMap :  Map<Map<object,Function>,any> = new Map();
-
+const _transitions_callbackMap :  Map<Map<EventTarget,Function>,any> = new Map();
+// _transitions_callbackMap.clear();  // is this needed??  FIXME
 
 export class StateTransition {
     name : string;
-    callbackMap : Map<object,Function> ;
+    callbackMap : Map<EventTarget,Function> ;
     usrDefined_transition: Function;
 
     constructor(NAME:string){
@@ -22,10 +22,9 @@ export class StateTransition {
         if(typeof(this.name) !== "string") throw Error("Variable name must be a string.");
     }
 
-    lock_callbacks(event:CustomEvent){
+    lock_callbacks(){
         if(_isCallback_locked) {
-            console.log('The following target has dispatched a '+ this.name +' event during a UI update callback:');
-            console.log(event.target);
+            this.unlock_callbacks();
             throw Error('Forbidden multiple-update during an update callback loop.');
         } 
         else  _isCallback_locked = true;
@@ -38,7 +37,7 @@ export class StateTransition {
     updateHandler( event:CustomEvent) :void {
 
         console.log('Handling event UPDATE from stateTransition: '+this.name);
-        this.lock_callbacks(event);
+        this.lock_callbacks();
 
         this.usrDefined_transition(event);
 
@@ -129,7 +128,7 @@ export class StateVariable extends StateTransition{
     updateHandler( event:CustomEvent) :void {
 
         console.log('Handling event UPDATE from state variable: '+this.name);
-        this.lock_callbacks(event);
+        this.lock_callbacks();
                
         this.value = event.detail.value;
     

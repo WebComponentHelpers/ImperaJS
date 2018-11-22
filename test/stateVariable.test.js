@@ -94,17 +94,55 @@ export default function (){
             });
 
         });
-        // Input output for bool, string, object and number
-            // write/read (getter/setter test) proper value, write read proper type, 
-            // throws when corrupted
-        
-        // Update_handler
-            // it does lock the callback, it throws
-            // it updates the variable, updates only once
-            // it runs the callbacks, set ad hoc, passes the right modified value
-            // that unlocks
-        
-        // Set_auto value willbe tested in Transitions
+        describe('Update Handler',()=>{
+            it('It locks',()=>{
+                let test_string =  new StateVariable("test_string",'string',"ciao");
+                let test_number =  new StateVariable("test_number",'number', 7);
+                let double_mod = ()=>{ let pippo = new CustomEvent("bordello",{ bubbles:true, detail:{'value':872}}); test_number.updateHandler(pippo) };
+                test_string.callbackMap.set(document.body, double_mod);
+
+                let throw_lock = ()=>{ let pippo = new CustomEvent("bordello",{ bubbles:true, detail:{'value':"ggg"}}); test_string.updateHandler(pippo)};
+
+                chai.assert.Throw(throw_lock);
+            });
+
+            it('It updates all values and only once and unlocks',()=>{
+                let test_string =  new StateVariable("test_string",'string',"ciao");
+                let test_number =  new StateVariable("test_number",'number', 7);
+                let test_object =  new StateVariable("test_object",'object',{ciao:"bella", hey:67, poz:["cool", 9]});
+                let test_bool   =  new StateVariable("test_bool",'boolean',true);
+                
+                test_string.value = "hey";
+                test_number.value = 123;
+                test_object.value = {bla:67, ca:"ca"};
+                test_bool.value = false;
+
+                let counter = 0;
+                let counter_func = ()=>{ counter++; };
+                test_string.callbackMap.set(document.body, counter_func);
+                test_number.callbackMap.set(document.body, counter_func);
+                test_object.callbackMap.set(document.body, counter_func);
+                test_bool.callbackMap.set(document.body, counter_func);
+                
+                let ev_n = new CustomEvent("bordello",{ bubbles:true, detail:{'value':321}});
+                let ev_s = new CustomEvent("bordello",{ bubbles:true, detail:{'value':"qwerty"}});
+                let ev_o = new CustomEvent("bordello",{ bubbles:true, detail:{'value':{a:1, b:2}}});
+                let ev_b = new CustomEvent("bordello",{ bubbles:true, detail:{'value':true}});
+                
+                test_string.updateHandler(ev_s);
+                chai.assert.equal(test_string.value,"qwerty", "String " );
+                chai.assert.equal(counter,1,"Called once ");
+                test_number.updateHandler(ev_n);
+                chai.assert.equal(test_number.value,321, "number " );
+                chai.assert.equal(counter,2,"Called once ");
+                test_object.updateHandler(ev_o);
+                chai.assert.deepEqual(test_object.value,{a:1, b:2} , "Object " );
+                chai.assert.equal(counter,3,"Called once ");
+                test_bool.updateHandler(ev_b);
+                chai.assert.equal(test_bool.value,true, "bool " );
+                chai.assert.equal(counter,4,"Called once ");
+            });
+        });
 
     });
 }

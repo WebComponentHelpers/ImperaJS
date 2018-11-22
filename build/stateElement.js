@@ -6,6 +6,7 @@ export var stateBehaviour;
 })(stateBehaviour || (stateBehaviour = {}));
 var _isCallback_locked = false;
 const _transitions_callbackMap = new Map();
+// _transitions_callbackMap.clear();  // is this needed??  FIXME
 export class StateTransition {
     constructor(NAME) {
         this.name = NAME;
@@ -14,10 +15,9 @@ export class StateTransition {
         if (typeof (this.name) !== "string")
             throw Error("Variable name must be a string.");
     }
-    lock_callbacks(event) {
+    lock_callbacks() {
         if (_isCallback_locked) {
-            console.log('The following target has dispatched a ' + this.name + ' event during a UI update callback:');
-            console.log(event.target);
+            this.unlock_callbacks();
             throw Error('Forbidden multiple-update during an update callback loop.');
         }
         else
@@ -28,7 +28,7 @@ export class StateTransition {
     }
     updateHandler(event) {
         console.log('Handling event UPDATE from stateTransition: ' + this.name);
-        this.lock_callbacks(event);
+        this.lock_callbacks();
         this.usrDefined_transition(event);
         // loop over watchers callbacks
         for (let update_callback of this.callbackMap.values()) {
@@ -99,7 +99,7 @@ export class StateVariable extends StateTransition {
     }
     updateHandler(event) {
         console.log('Handling event UPDATE from state variable: ' + this.name);
-        this.lock_callbacks(event);
+        this.lock_callbacks();
         this.value = event.detail.value;
         // loop over watchers callbacks
         for (let update_callback of this.callbackMap.values()) {
