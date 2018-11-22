@@ -4,18 +4,31 @@ export var stateBehaviour;
     stateBehaviour["NORMAL"] = "NORMAL";
     stateBehaviour["READONLY"] = "READONLY";
 })(stateBehaviour || (stateBehaviour = {}));
-var _statewatchdog = 0;
+var _isCallback_locked = false;
 const _transitions_callbackMap = new Map();
 export class StateTransition {
     constructor(NAME) {
         this.name = NAME;
         this.callbackMap = new Map();
         this.usrDefined_transition = undefined;
+        if (typeof (this.name) !== "string")
+            throw Error("Variable name must be a string.");
+    }
+    lock_callbacks(event) {
+        if (_isCallback_locked) {
+            console.log('The following target has dispatched a ' + this.name + ' event during a UI update callback:');
+            console.log(event.target);
+            throw Error('Forbidden multiple-update during an update callback loop.');
+        }
+        else
+            _isCallback_locked = true;
+    }
+    unlock_callbacks() {
+        _isCallback_locked = false;
     }
     updateHandler(event) {
         console.log('Handling event UPDATE from stateTransition: ' + this.name);
-        (_statewatchdog >= 10000) ? _statewatchdog = 0 : _statewatchdog++;
-        let sanity_check = _statewatchdog;
+        this.lock_callbacks(event);
         this.usrDefined_transition(event);
         // loop over watchers callbacks
         for (let update_callback of this.callbackMap.values()) {
@@ -28,8 +41,7 @@ export class StateTransition {
             }
         }
         _transitions_callbackMap.clear();
-        if (sanity_check !== _statewatchdog)
-            throw Error('State variables update is forbidden within a data update callback.');
+        this.unlock_callbacks();
     }
     watchHanlder(event) {
         //console.log('Adding element to watchlist of: '+this.name);
@@ -43,29 +55,42 @@ export class StateTransition {
     }
 }
 export class StateVariable extends StateTransition {
-    constructor(NAME, TYPE, BEHAVIOUR) {
+    constructor(NAME, TYPE, DEFAULT) {
         super(NAME);
         this.type = TYPE;
-        this.behaviour = BEHAVIOUR;
-        this.default_val = '100'; // FIXME default value problem
+        this.behaviour = stateBehaviour.NORMAL;
+        this.default_val = DEFAULT;
+        this._err_on_value = 'Wrong type assignment to state variable: ' + this.name;
+        // Sanity checks
+        let white_list_types = ["string", "object", "number", "boolean"];
+        if (typeof (TYPE) !== "string")
+            throw Error("StateVariable type must be a string.");
+        if (!white_list_types.includes(TYPE))
+            throw Error(this._err_on_value);
         // set localstorage variable if none
         if (localStorage.getItem(this.name) === null)
-            localStorage.setItem(this.name, this.default_val);
+            this.value = this.default_val;
+    }
+    setBehaviour(behave_as) {
+        this.behaviour = behave_as;
     }
     set value(val) {
         let push_var = val;
-        //console.log('setting value to: '+this.name);
         if (typeof (val) === this.type) {
             if (this.type !== 'string')
                 push_var = JSON.stringify(val);
             localStorage.setItem(this.name, push_var);
         }
+        else
+            throw Error(this._err_on_value);
     }
     get value() {
-        //console.log('getting value of: '+this.name);
         let return_val = localStorage.getItem(this.name);
-        if (this.type !== 'string')
-            return_val = JSON.parse(return_val); // FIXME: use catch/err on parse...
+        if (this.type !== 'string') {
+            return_val = JSON.parse(return_val);
+            if (typeof (return_val) !== this.type)
+                throw Error("State variable: " + this.name + " is corrupted, returns type " + typeof (return_val) + " expecting " + this.type);
+        }
         return return_val;
     }
     set auto_value(val) {
@@ -74,19 +99,13 @@ export class StateVariable extends StateTransition {
     }
     updateHandler(event) {
         console.log('Handling event UPDATE from state variable: ' + this.name);
-        (_statewatchdog >= 10000) ? _statewatchdog = 0 : _statewatchdog++;
-        let sanity_check = _statewatchdog;
-        if (typeof (event.detail.value) === this.type) {
-            this.value = event.detail.value;
-        }
-        else
-            console.log('ERR: stateVariable - ' + this.name + ' forbidden value type.');
+        this.lock_callbacks(event);
+        this.value = event.detail.value;
         // loop over watchers callbacks
         for (let update_callback of this.callbackMap.values()) {
             update_callback(event.detail.value);
         }
-        if (sanity_check !== _statewatchdog)
-            throw Error('State variables update is forbidden within a data update callback.');
+        this.unlock_callbacks();
     }
 }
 export class Message extends StateTransition {
