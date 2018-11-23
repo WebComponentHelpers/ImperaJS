@@ -27,7 +27,6 @@ export class StateTransition {
         _isCallback_locked = false;
     }
     updateHandler(event) {
-        console.log('Handling event UPDATE from stateTransition: ' + this.name);
         this.lock_callbacks();
         this.usrDefined_transition(event);
         // loop over watchers callbacks
@@ -44,12 +43,14 @@ export class StateTransition {
         this.unlock_callbacks();
     }
     watchHanlder(event) {
-        //console.log('Adding element to watchlist of: '+this.name);
+        if (event.target === null || event.target === undefined)
+            throw Error("Target is undefined? WTF?");
         // add element to the watcher list
         this.callbackMap.set(event.target, event.detail.update);
     }
     detachHanlder(event) {
-        //console.log('Removing element from watchlist of: '+this.name);
+        if (event.target === null || event.target === undefined)
+            throw Error("Target is undefined? WTF?");
         // remove element from watcher list
         this.callbackMap.delete(event.target);
     }
@@ -98,7 +99,6 @@ export class StateVariable extends StateTransition {
         _transitions_callbackMap.set(this.callbackMap, val);
     }
     updateHandler(event) {
-        console.log('Handling event UPDATE from state variable: ' + this.name);
         this.lock_callbacks();
         this.value = event.detail.value;
         // loop over watchers callbacks
@@ -110,14 +110,10 @@ export class StateVariable extends StateTransition {
 }
 export class Message extends StateTransition {
     updateHandler(event) {
-        console.log('Handling event MESSAGE from message: ' + this.name);
-        // (_statewatchdog >= 10000) ? _statewatchdog = 0 :  _statewatchdog++;
-        /// let sanity_check = _statewatchdog;
         // loop over watchers callbacks
         for (let message_callback of this.callbackMap.values()) {
             message_callback(event.detail);
         }
-        // if(sanity_check !== _statewatchdog) throw Error('State variables update is forbidden within a data update callback.');
     }
 }
 // FIXME: 

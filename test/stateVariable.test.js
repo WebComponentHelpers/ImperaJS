@@ -40,13 +40,13 @@ export default function (){
                 let test_function4 = () =>{let a = new StateVariable("test_function",'string',8); };
                 let test_function7 = () =>{let a = new StateVariable("test_function",'string',pollo); };
 
-                chai.assert.Throw(test_function);
-                chai.assert.Throw(test_function2);
-                chai.assert.Throw(test_function3);
-                chai.assert.Throw(test_function4);
-                chai.assert.Throw(test_function5);
-                chai.assert.Throw(test_function6);
-                chai.assert.Throw(test_function7);
+                chai.assert.Throw(test_function, "Wrong type assignment to state variable");
+                chai.assert.Throw(test_function2,"Wrong type assignment to state variable");
+                chai.assert.Throw(test_function3, "Wrong type assignment to state variable");
+                chai.assert.Throw(test_function4, "Wrong type assignment to state variable");
+                chai.assert.Throw(test_function5, "Wrong type assignment to state variable");
+                chai.assert.Throw(test_function6, "Wrong type assignment to state variable");
+                chai.assert.Throw(test_function7, "Wrong type assignment to state variable");
             });
         });
         describe('Input Output',()=>{
@@ -77,9 +77,9 @@ export default function (){
                 let test_function2 = () =>{ test_bool.value = 89;};
                 let test_function3 = () =>{ test_number.value = undefined;};
 
-                chai.assert.Throw(test_function);
-                chai.assert.Throw(test_function2);
-                chai.assert.Throw(test_function3);
+                chai.assert.Throw(test_function, "Wrong type assignment to state variable");
+                chai.assert.Throw(test_function2,"Wrong type assignment to state variable");
+                chai.assert.Throw(test_function3, "Wrong type assignment to state variable");
 
                 localStorage.setItem("test_object",'\"ciao\"');
                 localStorage.setItem("test_bool",'\"ciao\"');
@@ -88,9 +88,9 @@ export default function (){
                 let test_function5 = () =>{ let ciao = test_bool.value;};
                 let test_function6 = () =>{ let ciao = test_number.value;};
                 
-                chai.assert.Throw(test_function4);
-                chai.assert.Throw(test_function5);
-                chai.assert.Throw(test_function6);
+                chai.assert.Throw(test_function4, "corrupted");
+                chai.assert.Throw(test_function5, "corrupted");
+                chai.assert.Throw(test_function6, "corrupted");
             });
 
         });
@@ -103,7 +103,7 @@ export default function (){
 
                 let throw_lock = ()=>{ let pippo = new CustomEvent("bordello",{ bubbles:true, detail:{'value':"ggg"}}); test_string.updateHandler(pippo)};
 
-                chai.assert.Throw(throw_lock);
+                chai.assert.Throw(throw_lock, "Forbidden multiple-update");
             });
 
             it('It updates all values and only once and unlocks',()=>{
