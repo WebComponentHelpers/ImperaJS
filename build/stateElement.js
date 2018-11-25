@@ -2,7 +2,7 @@ import onChangeProxy from "./onChage.js";
 var _isCallback_locked = false;
 const _transitions_callbackMap = new Map();
 // _transitions_callbackMap.clear();  // is this needed??  FIXME
-export class StateTransition {
+export class StateChange {
     constructor(NAME) {
         this.name = NAME;
         this.callbackMap = new Map();
@@ -54,7 +54,7 @@ export class StateTransition {
         this.callbackMap.delete(target);
     }
 }
-export class StateVariable extends StateTransition {
+export class StateVariable extends StateChange {
     constructor(NAME, DEFAULT) {
         super(NAME);
         this.type = typeof (DEFAULT);
@@ -115,6 +115,10 @@ export class StateVariable extends StateTransition {
         this._markForWatchersUpdate();
         return this.value;
     }
+    set auto_value(val) {
+        this._markForWatchersUpdate();
+        this.value = val;
+    }
     _markForWatchersUpdate() {
         _transitions_callbackMap.set(this, this._call_watchers.bind(this));
     }
@@ -126,7 +130,7 @@ export class StateVariable extends StateTransition {
         this.unlock_callbacks();
     }
 }
-export class Message extends StateTransition {
+export class Message extends StateChange {
     updateWatchers(input) {
         this._call_watchers(input);
     }
