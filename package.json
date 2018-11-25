@@ -6,7 +6,7 @@
   "types": "src/stateElement.ts",
   "scripts": {
     "build": "tsc",
-    "test": "tsc; firefox http://127.0.0.1:8080/test/ ; http-server ",
+    "test": "npm run build; firefox http://127.0.0.1:8080/test/ ; http-server ",
     "watch": "tsc -t es2018 --outDir build/ -w src/stateElement.ts "
   },
   "repository": {

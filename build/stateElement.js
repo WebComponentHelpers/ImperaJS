@@ -1,9 +1,4 @@
-// State Manager element
-export var stateBehaviour;
-(function (stateBehaviour) {
-    stateBehaviour["NORMAL"] = "NORMAL";
-    stateBehaviour["READONLY"] = "READONLY";
-})(stateBehaviour || (stateBehaviour = {}));
+import onChangeProxy from "./onChage.js";
 var _isCallback_locked = false;
 const _transitions_callbackMap = new Map();
 // _transitions_callbackMap.clear();  // is this needed??  FIXME
@@ -26,156 +21,155 @@ export class StateTransition {
     unlock_callbacks() {
         _isCallback_locked = false;
     }
-    updateHandler(event) {
+    updateWatchers(input) {
         this.lock_callbacks();
-        this.usrDefined_transition(event);
+        this.usrDefined_transition(input);
         // loop over watchers callbacks
-        for (let update_callback of this.callbackMap.values()) {
-            update_callback(event.detail);
-        }
+        this._call_watchers(input);
         // loop over automatically added callbacks to _transitions_callbackMap
-        for (let [map, val] of _transitions_callbackMap) {
-            for (let upd_callback of map.values()) {
-                upd_callback(val);
-            }
+        for (let upd_callback of _transitions_callbackMap.values()) {
+            upd_callback();
         }
         _transitions_callbackMap.clear();
         this.unlock_callbacks();
     }
-    watchHanlder(event) {
-        if (event.target === null || event.target === undefined)
-            throw Error("Target is undefined? WTF?");
-        // add element to the watcher list
-        this.callbackMap.set(event.target, event.detail.update);
+    _call_watchers(input) {
+        for (let update_callback of this.callbackMap.values()) {
+            if (input === undefined)
+                update_callback();
+            else
+                update_callback(input);
+        }
     }
-    detachHanlder(event) {
-        if (event.target === null || event.target === undefined)
-            throw Error("Target is undefined? WTF?");
+    attachWatcher(target, callback) {
+        if (target === null || target === undefined)
+            throw Error("Target is undefined.");
+        // add element to the watcher list
+        this.callbackMap.set(target, callback);
+    }
+    detachWatcher(target) {
+        if (target === null || target === undefined)
+            throw Error("Target is undefined.");
         // remove element from watcher list
-        this.callbackMap.delete(event.target);
+        this.callbackMap.delete(target);
     }
 }
 export class StateVariable extends StateTransition {
-    constructor(NAME, TYPE, DEFAULT) {
+    constructor(NAME, DEFAULT) {
         super(NAME);
-        this.type = TYPE;
-        this.behaviour = stateBehaviour.NORMAL;
+        this.type = typeof (DEFAULT);
         this.default_val = DEFAULT;
         this._err_on_value = 'Wrong type assignment to state variable: ' + this.name;
+        this._valueProxy = undefined;
         // Sanity checks
         let white_list_types = ["string", "object", "number", "boolean"];
-        if (typeof (TYPE) !== "string")
-            throw Error("StateVariable type must be a string.");
-        if (!white_list_types.includes(TYPE))
-            throw Error(this._err_on_value);
-        // set localstorage variable if none
-        if (localStorage.getItem(this.name) === null)
-            this.value = this.default_val;
-    }
-    setBehaviour(behave_as) {
-        this.behaviour = behave_as;
+        if (!white_list_types.includes(this.type))
+            throw TypeError(this._err_on_value);
+        // set default variable if none
+        this._val = this.GET() || this.CREATE(this.default_val);
+        // proxy
+        if (this.type === "object")
+            this._valueProxy = onChangeProxy(this._val, this.UPDATE_DATA.bind(this));
     }
     set value(val) {
-        let push_var = val;
-        if (typeof (val) === this.type) {
-            if (this.type !== 'string')
-                push_var = JSON.stringify(val);
+        this._val = val;
+        if (this.type === "object" && typeof (val) === "object")
+            this._valueProxy = onChangeProxy(this._val, this.UPDATE_DATA.bind(this));
+        this.UPDATE_DATA();
+    }
+    get value() {
+        return (this.type === "object") ? this._valueProxy : this._val;
+    }
+    CREATE(me) {
+        if (typeof (me) === this.type) {
+            let push_var = (this.type !== 'string') ? JSON.stringify(me) : me;
             localStorage.setItem(this.name, push_var);
         }
         else
-            throw Error(this._err_on_value);
+            throw TypeError(this._err_on_value);
+        return me;
     }
-    get value() {
+    UPDATE_DATA() {
+        if (typeof (this._val) === this.type) {
+            let push_var = (this.type !== 'string') ? JSON.stringify(this._val) : this._val;
+            localStorage.setItem(this.name, push_var);
+        }
+        else
+            throw TypeError(this._err_on_value);
+    }
+    RESET() {
+        this.value = this.default_val;
+    }
+    GET() {
         let return_val = localStorage.getItem(this.name);
+        if (return_val === null)
+            return return_val;
         if (this.type !== 'string') {
             return_val = JSON.parse(return_val);
             if (typeof (return_val) !== this.type)
-                throw Error("State variable: " + this.name + " is corrupted, returns type " + typeof (return_val) + " expecting " + this.type);
+                throw TypeError("State variable: " + this.name + " is corrupted, returns type " + typeof (return_val) + " expecting " + this.type);
         }
         return return_val;
     }
-    set auto_value(val) {
-        this.value = val;
-        _transitions_callbackMap.set(this.callbackMap, val);
+    get auto_value() {
+        this._markForWatchersUpdate();
+        return this.value;
     }
-    updateHandler(event) {
+    _markForWatchersUpdate() {
+        _transitions_callbackMap.set(this, this._call_watchers.bind(this));
+    }
+    updateWatchers() {
         this.lock_callbacks();
-        this.value = event.detail.value;
+        this.UPDATE_DATA();
         // loop over watchers callbacks
-        for (let update_callback of this.callbackMap.values()) {
-            update_callback(event.detail.value);
-        }
+        this._call_watchers();
         this.unlock_callbacks();
     }
 }
 export class Message extends StateTransition {
-    updateHandler(event) {
-        // loop over watchers callbacks
-        for (let message_callback of this.callbackMap.values()) {
-            message_callback(event.detail);
-        }
-    }
-}
-// FIXME: 
-// - this will fail in comunication with state enhanced custom elements
-//   in the case each view manage its state, a CE can be then defined previously 
-//   in another view and is re-used in the current view loaded lazily
-export class stateElement extends HTMLElement {
-    constructor() {
-        super();
-        this.stateList = [];
-        this.transitionsList = [];
-    }
-    connectedCallback() {
-        // adding basic event listeners for state variables with data binding
-        for (let state of this.stateList) {
-            if (state.behaviour === stateBehaviour.NORMAL) {
-                //console.log('adding event listeners: ', 'UPDATE-' + state.name ) ;
-                this.addEventListener('UPDATE-' + state.name, state.updateHandler.bind(state));
-                //console.log('adding event listeners: ', 'WATCH-' + state.name ) ;
-                this.addEventListener('WATCH-' + state.name, state.watchHanlder.bind(state));
-                //console.log('adding event listeners: ', 'DETACH-' + state.name ) ;
-                this.addEventListener('DETACH-' + state.name, state.detachHanlder.bind(state));
-            }
-        }
+    updateWatchers(input) {
+        this._call_watchers(input);
     }
 }
 // mixin to be applied to a web-component
 // FIXME: 
-//  - getter and setters error handling with JSON parsing
-//  - solve the fact that we don't know type of state if pass only string, maybe pass a tuple
-//  - add a check if the WATCH event has been caught, so send an error if StateManager defined after custom element
-//  - Problem: maybe I just want access to the stateVariable but don't want to watch.
 //  - make test machinery
-export let statesMixin = (baseClass, listOfStates) => class extends baseClass {
-    constructor() {
+/*
+export let statesMixin = (baseClass:any, listOfStates:Array<string>) => class extends baseClass {
+
+    constructor(){
         super();
         this._addGetterSetters();
     }
-    _addGetterSetters() {
-        for (let state of listOfStates) {
+
+    _addGetterSetters():void{
+        for( let state of listOfStates){
+            
             //console.log('adding getter and setters for: ', state);
+
             Object.defineProperty(this, state, {
                 set: (val) => {
                     //console.log('dispatching UPDATE-'+state+' with value: ', val);
-                    let event = new CustomEvent('UPDATE-' + state, { bubbles: true, detail: { 'value': val } });
+                    let event = new CustomEvent('UPDATE-'+state, { bubbles:true, detail:{'value':val} });
                     this.dispatchEvent(event);
                 },
                 get: () => { return JSON.parse(localStorage.getItem(state)); }
             });
         }
     }
-    connectedCallback() {
+        
+    connectedCallback(){
         //console.log('Im connected, running connected callback');
-        if (super['connectedCallback'] !== undefined) {
+        if(super['connectedCallback'] !== undefined) {
             super.connectedCallback();
         }
         // watch default state variables
         for (let state of listOfStates) {
-            let update = this['on_update_' + state].bind(this);
-            let event = new CustomEvent('WATCH-' + state, { bubbles: true, detail: { 'update': update } });
+            let update = this['on_update_'+state].bind(this);
+            let event = new CustomEvent('WATCH-'+state, { bubbles:true, detail:{'update':update} });
             //console.log('----> dispatching event: ', 'WATCH-'+state);
             this.dispatchEvent(event);
         }
     }
-};
+    
+}*/ 

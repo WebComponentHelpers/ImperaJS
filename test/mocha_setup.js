@@ -9,7 +9,7 @@ mocha.setup('bdd');
 
 // here run asserts
 state_var_assert();
-transitions_assert();
+// transitions_assert();
 
 mocha.checkLeaks();
 mocha.run();
