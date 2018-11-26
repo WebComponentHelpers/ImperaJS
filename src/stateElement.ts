@@ -5,7 +5,7 @@ var _isCallback_locked = false;
 const _transitions_callbackMap :  Map<StateVariable, Function> = new Map();
 // _transitions_callbackMap.clear();  // is this needed??  FIXME
 
-export class StateChange {
+export class StateTransition {
     name : string;
     callbackMap : Map<EventTarget,Function> ;
     usrDefined_transition: Function;
@@ -71,7 +71,7 @@ export class StateChange {
 
 }
 
-export class StateVariable extends StateChange{
+export class StateVariable extends StateTransition{
     type : string;
     default_val : any ;
     _err_on_value :string;
@@ -167,7 +167,7 @@ export class StateVariable extends StateChange{
 
 }
 
-export class Message extends StateChange{
+export class Message extends StateTransition{
     updateWatchers(input:any) :void {
         this._call_watchers(input);
     }
@@ -177,27 +177,59 @@ export class Message extends StateChange{
 // mixin to be applied to a web-component
 // FIXME: 
 //  - make test machinery
-/*
-export let statesMixin = (baseClass:any, listOfStates:Array<string>) => class extends baseClass {
+export let statesMixin = (listOfComponents:Array<StateVariable|StateTransition>, baseClass:any) => class extends baseClass {
 
     constructor(){
         super();
+        this._transitionMap = new Map();
+        this._messageMap = new Map();
         this._addGetterSetters();
+
+    }
+
+    applyTransition(name:string,input?:any){
+        if(this._transitionMap.has(name))
+            this._transitionMap.get(name)(input);
+        else throw Error(`Transition ${name} not found`);
+    }
+    
+    sendMessageOnChannel(name:string, payload:any){
+        if(this._messageMap.has(name))
+            this._messageMap.get(name)(payload);
+        else throw Error(`Message channel ${name} not found`);
     }
 
     _addGetterSetters():void{
-        for( let state of listOfStates){
-            
-            //console.log('adding getter and setters for: ', state);
 
-            Object.defineProperty(this, state, {
-                set: (val) => { 
-                    //console.log('dispatching UPDATE-'+state+' with value: ', val);
-                    let event = new CustomEvent('UPDATE-'+state, { bubbles:true, detail:{'value':val} }); 
-                    this.dispatchEvent(event);
-                },
-                get: () => { return JSON.parse(localStorage.getItem(state)); }
-            });    
+        for (let state_comp of listOfComponents) {
+          switch (state_comp.constructor.name) {
+            case "StateVariable":
+                // adding proxy
+                if (state_comp.type === "object")
+                   this[`_${state_comp.name}Proxy`] = onChangeProxy(state_comp._val, state_comp.updateWatchers.bind(state_comp));
+
+                Object.defineProperty(this, state_comp.name, {
+                    set: (val: any) => {
+                        state_comp._val = val;
+                        if (state_comp.type === "object" && typeof (val) === "object")
+                          this["_" + state_comp.name + "Proxy"] = onChangeProxy(state_comp._val, state_comp.updateWatchers.bind(state_comp));
+                        state_comp.updateWatchers();
+                        },
+                    get: () => { return (state_comp.type === "object") ? this[`_${state_comp.name}Proxy`] : state_comp._val; }
+                });
+            
+            break;
+
+            case "StateTransition":
+                this._transitionMap.set(state_comp.name, state_comp.updateWatchers.bind(state_comp));
+            break;
+            case "Message":
+                this._messageMap.set(state_comp.name, state_comp.updateWatchers.bind(state_comp));
+            break;
+            default :
+                throw TypeError("Accept only StateVariable, StateTransition or Message.");   
+          }
+
         }
     }
         
@@ -207,12 +239,31 @@ export let statesMixin = (baseClass:any, listOfStates:Array<string>) => class ex
             super.connectedCallback();
         }
         // watch default state variables
-        for (let state of listOfStates) {
-            let update = this['on_update_'+state].bind(this);
-            let event = new CustomEvent('WATCH-'+state, { bubbles:true, detail:{'update':update} });
-            //console.log('----> dispatching event: ', 'WATCH-'+state);
-            this.dispatchEvent(event);
+        for (let state_comp of listOfComponents) {
+            switch (state_comp.constructor.name) {
+                case "StateVariable": 
+                case "StateTransition":
+                    if(this[`on_${state_comp.name}_update`]) 
+                        state_comp.attachWatcher(this, this[`on_${state_comp.name}_update`].bind(this));
+                break;
+                case "Message":
+                    if(this[`gotMessage_${state_comp.name}`]) 
+                        state_comp.attachWatcher(this, this[`gotMessage_${state_comp.name}`].bind(this));
+                break;
+            }
+
         }
     }
+
+    disconnectedCallback(){
+        if(super['disconnectedCallback'] !== undefined) {
+            super.disconnectedCallback();
+        }
+
+        for (let state_comp of listOfComponents) {
+            state_comp.detachWatcher(this);
+        }
+
+    }
     
-}*/
+}

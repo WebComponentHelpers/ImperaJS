@@ -1,7 +1,7 @@
 {
   "name": "impera-js",
   "version": "0.0.0",
-  "description": "A web component as manager for app state",
+  "description": "Web-components friendly state managment and data binding using Proxy",
   "main": "build/index.js",
   "types": "src/impera.ts",
   "scripts": {
@@ -16,7 +16,7 @@
   "keywords": [
     "web-component",
     "webcomponent",
-    "state", "app-state","event","events",
+    "state", "app-state","proxy",
     "managment"
   ],
   "author": "panmanfredini",

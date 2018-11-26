@@ -1,4 +1,4 @@
-import {StateChange, StateVariable, Message} from '../build/stateElement.js';
+import {StateTransition, StateVariable, Message} from '../build/stateElement.js';
 
 export default function (){
     // this is a must ;)
@@ -9,11 +9,12 @@ export default function (){
 
     describe('Transition',()=>{
         
-        let st = new StateChange("test");
-        let st_t = new StateChange("test_trow");
+        let st = new StateTransition("test");
+        let st_t = new StateTransition("test_trow");
         let mess = new Message("pollo");
         let message = "ciao";
 
+        
         let test_target = document.createElement("h1");
         let test_target2 = document.createElement("h2");
         let test_target4 = document.createElement("h4");
@@ -25,6 +26,9 @@ export default function (){
         let state_var = new StateVariable("test_var", "ciao");
         let state_num = new StateVariable("test_num", 765);
         let state_obj = new StateVariable("test_obj", {a:"ciao", b:7, c:[1,2,3]});
+
+        document.st = st;
+        document.vr = state_num;
 
         let fu5 = (a)=>{ st_t.updateWatchers(); };
         let fu6 = (a)=>{ st_t.updateWatchers(); };
