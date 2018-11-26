@@ -1,9 +1,9 @@
 {
-  "name": "state-element",
+  "name": "impera-js",
   "version": "0.0.0",
   "description": "A web component as manager for app state",
-  "main": "build/stateElement.js",
-  "types": "src/stateElement.ts",
+  "main": "build/index.js",
+  "types": "src/impera.ts",
   "scripts": {
     "build": "tsc",
     "test": "npm run build; firefox http://127.0.0.1:8080/test/ ; http-server ",
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/panManfredini/StateElement.git"
+    "url": "git+https://github.com/WebComponentHelpers/ImperaJS.git"
   },
   "keywords": [
     "web-component",
@@ -22,9 +22,9 @@
   "author": "panmanfredini",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/panManfredini/StateElement/issues"
+    "url": "https://github.com/WebComponentHelpers/ImperaJS.git/issues"
   },
-  "homepage": "https://github.com/panManfredini/StateElement#readme",
+  "homepage": "https://github.com/WebComponentHelpers/ImperaJS.git#readme",
   "devDependencies": {
     "chai": "^4.2.0",
     "http-server": "^0.11.1",
