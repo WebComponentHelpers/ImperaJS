@@ -91,7 +91,6 @@ export default function (){
             chai.assert.equal(state_num.value, 321, "xcheck");
             chai.assert.deepEqual(state_obj.value.c, [1,2,3,8], "xcheck");
 
-
             
             st.attachWatcher(test_target6,fu6);
             let func = ()=>{ st.updateWatchers({ciao:"ciao"}); };
@@ -110,6 +109,42 @@ export default function (){
             chai.assert.hasAllDeepKeys(st.callbackMap, [test_target,test_target2]);    
             chai.assert.equal(st.callbackMap.size, 2, "size of map");
         });
+
+        it('Async ',()=>{
+
+            let order = [0];
+
+            function promessa() {
+                return new Promise(resolve => { resolve('resolved'); });
+              }
+              
+            let set_1 = ()=>{ order.push(1);};
+            st.attachWatcher( test_target3, set_1);
+
+            st.usrDefined_transition = async (evt)=>{
+                var result = await promessa();
+                st_t.updateWatchers();
+            }
+            
+
+            st_t.usrDefined_transition = (vet)=>{ order.push(2); };
+
+            st.updateWatchers();
+
+            setTimeout(() => { 
+                try{
+                    chai.assert.deepEqual(order, [0,1,2], "Async ");
+                }
+                catch(e){
+                    let d = document.querySelector("h1");
+                    d.innerHTML = "ASYNC FAILED!  <br>" + e.message ;
+                    d.style = "color:red;";
+                    document.querySelector("#mocha").appendChild(d);
+                }
+            }, 1);
+
+        });
+        
         describe('Message',()=>{
             it('Update Handler pass the message',()=>{
                 let ev8 = {message:"cazzone"};
