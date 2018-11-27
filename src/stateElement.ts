@@ -240,6 +240,7 @@ export let statesMixin = (listOfComponents:Array<StateVariable|StateTransition>,
         }
         // watch default state variables
         for (let state_comp of listOfComponents) {
+
             switch (state_comp.constructor.name) {
                 case "StateVariable": 
                 case "StateTransition":

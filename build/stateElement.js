@@ -138,7 +138,7 @@ export class Message extends StateTransition {
 // mixin to be applied to a web-component
 // FIXME: 
 //  - make test machinery
-export let statesMixin = (baseClass, listOfComponents) => class extends baseClass {
+export let statesMixin = (listOfComponents, baseClass) => class extends baseClass {
     constructor() {
         super();
         this._transitionMap = new Map();
