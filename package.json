@@ -1,6 +1,7 @@
 {
   "name": "impera-js",
   "version": "0.0.0",
+  "sideEffects": false,
   "description": "Proxy based state managment and data bindings for web-components",
   "main": "build/index.js",
   "types": "src/impera.ts",
