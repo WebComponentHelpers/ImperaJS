@@ -17,7 +17,9 @@
   "keywords": [
     "web-component",
     "webcomponent",
-    "state", "app-state","proxy",
+    "state",
+    "app-state",
+    "proxy",
     "managment"
   ],
   "author": "panmanfredini",
