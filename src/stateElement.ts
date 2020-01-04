@@ -177,8 +177,10 @@ export class Message extends StateTransition{
 // mixin to be applied to a web-component
 // FIXME: 
 //  - make test machinery
-export let statesMixin = (listOfComponents:Array<StateVariable|StateTransition>, baseClass:any) => class extends baseClass {
-
+export let statesMixin = (listOfComponents:Array<StateVariable|StateTransition|Message>, baseClass:any) => class extends baseClass {
+    _transitionMap : Map<String,any>
+    _messageMap :Map<String,any>
+    
     constructor(){
         super();
         this._transitionMap = new Map();
@@ -202,31 +204,28 @@ export let statesMixin = (listOfComponents:Array<StateVariable|StateTransition>,
     _addGetterSetters():void{
 
         for (let state_comp of listOfComponents) {
-          switch (state_comp.constructor.name) {
-            case "StateVariable":
+          if (state_comp instanceof StateVariable){
                 // adding proxy
                 if (state_comp.type === "object")
                    this[`_${state_comp.name}Proxy`] = onChangeProxy(state_comp._val, state_comp.updateWatchers.bind(state_comp));
 
                 Object.defineProperty(this, state_comp.name, {
                     set: (val: any) => {
-                        state_comp._val = val;
-                        if (state_comp.type === "object" && typeof (val) === "object")
-                          this["_" + state_comp.name + "Proxy"] = onChangeProxy(state_comp._val, state_comp.updateWatchers.bind(state_comp));
-                        state_comp.updateWatchers();
+                        (<StateVariable>state_comp)._val = val;
+                        if ((<StateVariable>state_comp).type === "object" && typeof (val) === "object")
+                          this["_" + state_comp.name + "Proxy"] = onChangeProxy((<StateVariable>state_comp)._val, state_comp.updateWatchers.bind(state_comp));
+                          (<StateVariable>state_comp).updateWatchers();
                         },
-                    get: () => { return (state_comp.type === "object") ? this[`_${state_comp.name}Proxy`] : state_comp._val; }
+                    get: () => { return ((<StateVariable>state_comp).type === "object") ? this[`_${state_comp.name}Proxy`] : (<StateVariable>state_comp)._val; }
                 });
-            
-            break;
-
-            case "StateTransition":
+          }
+          else if(state_comp instanceof Message){
+            this._messageMap.set(state_comp.name, state_comp.updateWatchers.bind(state_comp));
+          }
+          else if(state_comp instanceof StateTransition){
                 this._transitionMap.set(state_comp.name, state_comp.updateWatchers.bind(state_comp));
-            break;
-            case "Message":
-                this._messageMap.set(state_comp.name, state_comp.updateWatchers.bind(state_comp));
-            break;
-            default :
+          }
+          else {
                 throw TypeError("Accept only StateVariable, StateTransition or Message.");   
           }
 
@@ -240,21 +239,17 @@ export let statesMixin = (listOfComponents:Array<StateVariable|StateTransition>,
         }
         // watch default state variables
         for (let state_comp of listOfComponents) {
-
-            switch (state_comp.constructor.name) {
-                case "StateVariable": 
-                case "StateTransition":
-                    if(this[`on_${state_comp.name}_update`]) 
-                        state_comp.attachWatcher(this, this[`on_${state_comp.name}_update`].bind(this));
-                break;
-                case "Message":
-                    if(this[`gotMessage_${state_comp.name}`]) 
-                        state_comp.attachWatcher(this, this[`gotMessage_${state_comp.name}`].bind(this));
-                break;
+            
+            if(state_comp instanceof Message){
+                if(this[`gotMessage_${state_comp.name}`])
+                    //@ts-ignore
+                    state_comp.attachWatcher(this, this[`gotMessage_${state_comp.name}`].bind(this));
             }
-
+            else if(this[`on_${state_comp.name}_update`]) 
+                    //@ts-ignore
+                    state_comp.attachWatcher(this, this[`on_${state_comp.name}_update`].bind(this));
+            }
         }
-    }
 
     disconnectedCallback(){
         if(super['disconnectedCallback'] !== undefined) {
@@ -262,6 +257,7 @@ export let statesMixin = (listOfComponents:Array<StateVariable|StateTransition>,
         }
 
         for (let state_comp of listOfComponents) {
+            //@ts-ignore
             state_comp.detachWatcher(this);
         }
 

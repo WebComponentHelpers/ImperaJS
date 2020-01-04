@@ -173,7 +173,7 @@ export default function(){
 
         });
         describe('Performance',()=>{
-            it('Update of a 1000 element takes < 77mus',()=>{
+            it('Update of a 1000 element takes < 120mus',()=>{
                 let n_cycles = 1000;
                 let n_elements = 1000;
 
@@ -188,10 +188,10 @@ export default function(){
 
                 let start = performance.now();
                 for(let i=0; i < n_cycles; i++){
-                    motherfucker.num = 666;
+                    motherfucker.num = i;
                 }
                 let time_avg = (performance.now() - start) / n_cycles;
-                chai.assert.isBelow(time_avg * 1000 , 77, "take too much time");
+                chai.assert.isBelow(time_avg * 1000 , 120, "take too much time");
                 chai.assert.equal(b_n, n_cycles*n_elements, "something fishy :***");
             });
         });
