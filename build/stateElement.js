@@ -211,3 +211,31 @@ export let statesMixin = (listOfComponents, baseClass) => class extends baseClas
         }
     }
 };
+/**
+ * Prototype for Global Var
+ */
+class GlobalVar {
+    constructor(name, defaultVal, key) {
+        this.key = key || "none";
+        this.name = name;
+        // statvar takes type from default value, here just for type
+        // can put any value, anyway it will go in "none" key
+        this._var = new StateVariable(name + ":" + key, defaultVal);
+    }
+    setValue(inputVal) {
+        this._var.value = inputVal;
+        this._var.updateWatchers();
+    }
+    setKey(inputKey) {
+        this.key = inputKey;
+        this._var.name = this.name + ":" + this.key;
+        // set default variable if none
+        this._var._val = this._var.GET() || this._var.CREATE(this._var.default_val);
+        this._var.lock_callbacks();
+        this._var._call_watchers(); // FIXME: maybe call only if new value?
+        this._var.unlock_callbacks();
+    }
+    getVar() {
+        return this._var;
+    }
+}

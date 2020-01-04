@@ -284,13 +284,19 @@ class GlobalVar{
 
     setValue(inputVal:any){
         this._var.value = inputVal;
+        this._var.updateWatchers();
     }
+    
     setKey(inputKey:string){
         this.key = inputKey;
         this._var.name = this.name + ":" + this.key;
         // set default variable if none
         this._var._val = this._var.GET() || this._var.CREATE(this._var.default_val);
+        this._var.lock_callbacks();
+        this._var._call_watchers();  // FIXME: maybe call only if new value?
+        this._var.unlock_callbacks();
     }
+
     getVar(){
         return this._var;
     }
