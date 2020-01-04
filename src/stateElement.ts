@@ -180,7 +180,7 @@ export class Message extends StateTransition{
 export let statesMixin = (listOfComponents:Array<StateVariable|StateTransition|Message>, baseClass:any) => class extends baseClass {
     _transitionMap : Map<String,any>
     _messageMap :Map<String,any>
-    
+
     constructor(){
         super();
         this._transitionMap = new Map();
@@ -263,4 +263,33 @@ export let statesMixin = (listOfComponents:Array<StateVariable|StateTransition|M
 
     }
     
+}
+
+/**
+ * Prototype for Global Var
+ */
+
+class GlobalVar{
+    key:string
+    name:string
+    _var:StateVariable
+
+    constructor(name:string,defaultVal:any,key?:string){
+        this.key = key || "none";
+        this.name = name;
+        this._var = new StateVariable(name+":"+key, defaultVal);
+    }
+
+    setValue(inputVal:any){
+        this._var.value = inputVal;
+    }
+    setKey(inputKey:string){
+        this.key = inputKey;
+        this._var.name = this.name + ":" + this.key;
+        // set default variable if none
+        this._var._val = this._var.GET() || this._var.CREATE(this._var.default_val);
+    }
+    getVar(){
+        return this._var;
+    }
 }
