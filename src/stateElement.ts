@@ -277,6 +277,8 @@ class GlobalVar{
     constructor(name:string,defaultVal:any,key?:string){
         this.key = key || "none";
         this.name = name;
+        // statvar takes type from default value, here just for type
+        // can put any value, anyway it will go in "none" key
         this._var = new StateVariable(name+":"+key, defaultVal);
     }
 
