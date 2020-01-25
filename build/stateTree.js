@@ -1,16 +1,30 @@
 import { StateVariable } from "./stateElement.js";
 // FIX:
-// - Add check for variable name if already exist don't make a new one
-// - Add a new tree and new var to loaded_state_map at creation time
-// - do checks for types
-// - add possibility to specify foreign key with syntax (maybe ! or *name*)
-// - add possibility to distinguish between tree and var with (+)
+// - Add a new var to loaded_state_map at creation time
 /**
  * Map of all tree and stateVariable that have been hydrated.
  * This is used for easy access to variable pointers having their name,
  * it is necessary for data binding and the foreign keys strategy.
  * */
-export var loaded_state_map = new Map();
+var loaded_state_map = new Map();
+export class stateRegistry {
+    static get(path) {
+        if (typeof path === "string")
+            return loaded_state_map.get(path);
+        else
+            return null;
+    }
+    static set(path, item) {
+        if (typeof path === "string")
+            throw "Error: path must be a string";
+        if (loaded_state_map.has(path))
+            throw "Error: path " + path + " already exist";
+        loaded_state_map.set(path, item);
+    }
+    static delete(path) {
+        return loaded_state_map.delete(path);
+    }
+}
 /**
  * Container class for structure, collect and easy access your data.
  * It provides pointers to stateVariables and persist the data structure.
@@ -27,19 +41,19 @@ export class StateTree {
         let var_name = this._info.tree_name + "." + name;
         this[name] = new StateVariable(var_name, value);
         this._info.schema[name] = "_." + name;
-        loaded_state_map.set(var_name, this[name]);
+        stateRegistry.set(var_name, this[name]);
     }
-    AddForeign(item) {
-        let full_path = "";
-        if (item instanceof StateVariable)
-            full_path = item.name;
-        else
-            full_path = item._info.tree_name;
-        let var_name = full_path.split(".").pop();
-        this[var_name] = item;
-        this._info.schema[var_name] = full_path;
-        if (!loaded_state_map.has(full_path))
-            loaded_state_map.set(full_path, item);
+    AddForeignAs(item, key) {
+        if (item) {
+            let full_path = "";
+            if (item instanceof StateVariable)
+                full_path = item.name;
+            else
+                full_path = item._info.tree_name;
+            let var_name = key || full_path.split(".").pop();
+            this[var_name] = item;
+            this._info.schema[var_name] = full_path;
+        }
     }
     /**
      * Creates a new tree in the target one
@@ -49,24 +63,36 @@ export class StateTree {
      */
     AddBranch(name, value, fkeys) {
         let tree_name = this._info.tree_name + "." + name;
-        let new_tree = StateTree.Branch(tree_name, value, fkeys);
+        let new_tree = StateTree.newTree(tree_name, value, fkeys);
         this[name] = new_tree;
     }
-    static Branch(full_name, value, fkeys) {
+    /**
+     * StateTree builder.
+     * Syntax for ``data`` keys: if suffixed by "*" value is considered foreign key, if
+     * suffixed by "+" value object is considered as a sub-tree, else a StateVariable is added.
+     * @param full_name Name of the tree, if sub tree, should include also parent tree name
+     * @param data Object containing variable values, foreign keys and sub-trees.
+     * @param fkeys Overload way to define foreign key. ``fkeys`` keys that match ``data`` keys are interpreted as a foreign key, the values of this object
+     * must be full path to foreign key except last bit, which is defined in ``data`` value. Usefull input method in case of
+     * inputing data from a database.
+     */
+    static newTree(full_name, data, fkeys) {
         let new_tree = new StateTree(full_name);
-        for (let [key, val] of Object.entries(value)) {
-            if (typeof fkeys !== 'undefined' && fkeys.includes(key)) {
-                let foreign_tree_or_var = loaded_state_map.get(val);
-                if (foreign_tree_or_var) {
-                    new_tree[key] = foreign_tree_or_var;
-                    new_tree._info.schema[key] = val;
-                }
+        for (let [key, val] of Object.entries(data)) {
+            if (typeof fkeys !== 'undefined' && fkeys.hasOwnProperty(key)) {
+                new_tree.AddForeignAs(stateRegistry.get(fkeys[key] + "." + val), key);
+            }
+            else if (key.substr(-1) === "*") {
+                new_tree.AddForeignAs(stateRegistry.get(val), key.substr(0, key.length - 1));
+            }
+            else if (key.substr(-1) === "+") {
+                new_tree.AddBranch(key.substr(0, key.length - 1), val);
             }
             else {
                 new_tree.AddLeaf(key, val);
             }
         }
-        loaded_state_map.set(full_name, new_tree);
+        stateRegistry.set(full_name, new_tree);
         return new_tree;
     }
 }
