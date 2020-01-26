@@ -2,6 +2,26 @@ import {StateVariable, StateTransition} from "./stateElement.js"
 
 // FIX:
 // - Add a new var to loaded_state_map at creation time
+// - Always check type from user inputs, newTree() function for example
+// - State Var need to connect to the Store, for load and save (decouple data binding from persistence)
+// - Make typescript interface for the store
+// - Static Tree possibility at startup time
+// - create variable without knowing the type but guessing from store, need another optional argument, like "force" maybe
+// - Three hydratating cases:
+//      - User input --> to consider static, if try to change MUST throw, because if you run again the 
+//        code you get data inconsitency. No hit to storage. No lazyload.
+//      - Storage first --> Take always data from storage, if null then from user input when given. Here the root tree must always hit
+//        the storage, then take a decision. Lazyload possible.
+//      - Force input --> Always load input, but tree considered dynamic, can change (mostly usefull for the internal functions). No hit to storage.
+//        No laziload.
+// - StateTree default is lazyload
+// - Hydratation pattern:
+//      - if tree has property then return it, else { look in schema for pattern name, hit storage, retrive pointer to well formed var}
+//      - if property is a tree, then is returned a pointer to an empty tree with only schema (lazy loading).
+// - Future Storage may allow for bulk data retrival for performance tuning: look for saved pattern in the name,example we store all down tree "root.tree1",
+//   want to load var "root.tree1.tree2.tree3.var1", you'll do varName.contains(saved_pattern) if yes access data using the pattern.
+//   But probably better to load in bulk everything at that point.
+
 
 
 /** 
@@ -19,9 +39,12 @@ export class stateRegistry{
     }
 
     static set(path:string, item:(StateTree|StateVariable)){
-        if(typeof path === "string") throw "Error: path must be a string";
+        console.log("path: ", path);
+        console.log("typeof path: ", typeof path);
+
+        if(typeof path !== "string") throw "StateRegistry - path " + path + " must be a string";
         
-        if(loaded_state_map.has(path)) throw "Error: path " + path + " already exist";
+        if(loaded_state_map.has(path)) throw "StateRegistry - path " + path + " already exist";
         
         loaded_state_map.set(path, item);       
     }

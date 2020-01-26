@@ -15,10 +15,12 @@ export class stateRegistry {
             return null;
     }
     static set(path, item) {
-        if (typeof path === "string")
-            throw "Error: path must be a string";
+        console.log("path: ", path);
+        console.log("typeof path: ", typeof path);
+        if (typeof path !== "string")
+            throw "StateRegistry - path " + path + " must be a string";
         if (loaded_state_map.has(path))
-            throw "Error: path " + path + " already exist";
+            throw "StateRegistry - path " + path + " already exist";
         loaded_state_map.set(path, item);
     }
     static delete(path) {
