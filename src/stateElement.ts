@@ -71,14 +71,16 @@ export class StateTransition {
 
 }
 
+export type variable_values = number | string | object | boolean;
+
 export class StateVariable extends StateTransition{
     type : string;
-    default_val : any ;
+    default_val : variable_values ;
     _err_on_value :string;
-    _val : any;
+    _val : variable_values;
     _valueProxy: ProxyConstructor;
 
-    constructor(NAME:string, DEFAULT:any){   // FIXME DEFAULT HAS A TYPE OF TYPE
+    constructor(NAME:string, DEFAULT:variable_values){   // FIXME DEFAULT HAS A TYPE OF TYPE
         super(NAME);
         this.type = typeof(DEFAULT);
         this.default_val = DEFAULT;
@@ -93,13 +95,13 @@ export class StateVariable extends StateTransition{
         this._val = this.GET() || this.CREATE(this.default_val); 
 
         // proxy
-        if(this.type === "object")
+        if(typeof(this._val) === "object")
             this._valueProxy = onChangeProxy( this._val, this.UPDATE_DATA.bind(this) );
     }
 
     set value(val: any) {
         this._val = val;
-        if (this.type === "object" && typeof(val) === "object")
+        if (this.type === "object" && typeof(this._val) === "object")
             this._valueProxy = onChangeProxy(this._val, this.UPDATE_DATA.bind(this));
         this.UPDATE_DATA();
     }
@@ -118,7 +120,7 @@ export class StateVariable extends StateTransition{
 
     UPDATE_DATA():void{
         if( typeof(this._val) === this.type ) {
-            let push_var = (this.type !== 'string') ? JSON.stringify(this._val) : this._val;
+            let push_var = (typeof(this._val) !== 'string') ? JSON.stringify(this._val) : this._val;
             localStorage.setItem(this.name, push_var);
         }
         else throw TypeError(this._err_on_value);   
@@ -206,14 +208,15 @@ export let statesMixin = (listOfComponents:Array<StateVariable|StateTransition|M
         for (let state_comp of listOfComponents) {
           if (state_comp instanceof StateVariable){
                 // adding proxy
-                if (state_comp.type === "object")
+                if (typeof(state_comp._val) === "object")
                    this[`_${state_comp.name}Proxy`] = onChangeProxy(state_comp._val, state_comp.updateWatchers.bind(state_comp));
 
                 Object.defineProperty(this, state_comp.name, {
-                    set: (val: any) => {
+                    set: (val: variable_values) => {
                         (<StateVariable>state_comp)._val = val;
-                        if ((<StateVariable>state_comp).type === "object" && typeof (val) === "object")
-                          this["_" + state_comp.name + "Proxy"] = onChangeProxy((<StateVariable>state_comp)._val, state_comp.updateWatchers.bind(state_comp));
+                        if (typeof((<StateVariable>state_comp)._val) === "object" && typeof (val) === "object"){
+                          this["_" + state_comp.name + "Proxy"] = onChangeProxy(<object>((<StateVariable>state_comp)._val), state_comp.updateWatchers.bind(state_comp));
+                        }
                           (<StateVariable>state_comp).updateWatchers();
                         },
                     get: () => { return ((<StateVariable>state_comp).type === "object") ? this[`_${state_comp.name}Proxy`] : (<StateVariable>state_comp)._val; }

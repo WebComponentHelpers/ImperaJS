@@ -1,41 +1,17 @@
 import { StateVariable } from "./stateElement.js";
-// FIX:
-// - Add a new var to loaded_state_map at creation time
-/**
- * Map of all tree and stateVariable that have been hydrated.
- * This is used for easy access to variable pointers having their name,
- * it is necessary for data binding and the foreign keys strategy.
- * */
-var loaded_state_map = new Map();
-export class stateRegistry {
-    static get(path) {
-        if (typeof path === "string")
-            return loaded_state_map.get(path);
-        else
-            return null;
-    }
-    static set(path, item) {
-        console.log("path: ", path);
-        console.log("typeof path: ", typeof path);
-        if (typeof path !== "string")
-            throw "StateRegistry - path " + path + " must be a string";
-        if (loaded_state_map.has(path))
-            throw "StateRegistry - path " + path + " already exist";
-        loaded_state_map.set(path, item);
-    }
-    static delete(path) {
-        return loaded_state_map.delete(path);
-    }
-}
+import { Store } from './store.js';
 /**
  * Container class for structure, collect and easy access your data.
  * It provides pointers to stateVariables and persist the data structure.
  */
 export class StateTree {
-    constructor(Name) {
+    constructor(Name, store) {
+        let engine_name = store || "default";
+        let engine = Store.getEngine(engine_name);
         this._info = {
             tree_name: Name,
-            schema: {}
+            schema: {},
+            storageEngine: engine
         };
     }
     // Ingestion
@@ -43,7 +19,7 @@ export class StateTree {
         let var_name = this._info.tree_name + "." + name;
         this[name] = new StateVariable(var_name, value);
         this._info.schema[name] = "_." + name;
-        stateRegistry.set(var_name, this[name]);
+        this._info.storageEngine.registerItem(var_name, this[name]);
     }
     AddForeignAs(item, key) {
         if (item) {
@@ -78,14 +54,14 @@ export class StateTree {
      * must be full path to foreign key except last bit, which is defined in ``data`` value. Usefull input method in case of
      * inputing data from a database.
      */
-    static newTree(full_name, data, fkeys) {
-        let new_tree = new StateTree(full_name);
+    static newTree(full_name, data, fkeys, store) {
+        let new_tree = new StateTree(full_name, store);
         for (let [key, val] of Object.entries(data)) {
             if (typeof fkeys !== 'undefined' && fkeys.hasOwnProperty(key)) {
-                new_tree.AddForeignAs(stateRegistry.get(fkeys[key] + "." + val), key);
+                new_tree.AddForeignAs(Store.getItem(fkeys[key] + "." + val), key);
             }
             else if (key.substr(-1) === "*") {
-                new_tree.AddForeignAs(stateRegistry.get(val), key.substr(0, key.length - 1));
+                new_tree.AddForeignAs(Store.getItem(val), key.substr(0, key.length - 1));
             }
             else if (key.substr(-1) === "+") {
                 new_tree.AddBranch(key.substr(0, key.length - 1), val);
@@ -94,7 +70,7 @@ export class StateTree {
                 new_tree.AddLeaf(key, val);
             }
         }
-        stateRegistry.set(full_name, new_tree);
+        new_tree._info.storageEngine.registerItem(full_name, new_tree);
         return new_tree;
     }
 }
