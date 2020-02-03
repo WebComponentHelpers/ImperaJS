@@ -68,12 +68,12 @@ export class StateVariable extends StateTransition {
         // set default variable if none
         this._val = this.GET() || this.CREATE(this.default_val);
         // proxy
-        if (this.type === "object")
+        if (typeof (this._val) === "object")
             this._valueProxy = onChangeProxy(this._val, this.UPDATE_DATA.bind(this));
     }
     set value(val) {
         this._val = val;
-        if (this.type === "object" && typeof (val) === "object")
+        if (this.type === "object" && typeof (this._val) === "object")
             this._valueProxy = onChangeProxy(this._val, this.UPDATE_DATA.bind(this));
         this.UPDATE_DATA();
     }
@@ -91,7 +91,7 @@ export class StateVariable extends StateTransition {
     }
     UPDATE_DATA() {
         if (typeof (this._val) === this.type) {
-            let push_var = (this.type !== 'string') ? JSON.stringify(this._val) : this._val;
+            let push_var = (typeof (this._val) !== 'string') ? JSON.stringify(this._val) : this._val;
             localStorage.setItem(this.name, push_var);
         }
         else
@@ -161,13 +161,14 @@ export let statesMixin = (listOfComponents, baseClass) => class extends baseClas
         for (let state_comp of listOfComponents) {
             if (state_comp instanceof StateVariable) {
                 // adding proxy
-                if (state_comp.type === "object")
+                if (typeof (state_comp._val) === "object")
                     this[`_${state_comp.name}Proxy`] = onChangeProxy(state_comp._val, state_comp.updateWatchers.bind(state_comp));
                 Object.defineProperty(this, state_comp.name, {
                     set: (val) => {
                         state_comp._val = val;
-                        if (state_comp.type === "object" && typeof (val) === "object")
-                            this["_" + state_comp.name + "Proxy"] = onChangeProxy(state_comp._val, state_comp.updateWatchers.bind(state_comp));
+                        if (typeof (state_comp._val) === "object" && typeof (val) === "object") {
+                            this["_" + state_comp.name + "Proxy"] = onChangeProxy((state_comp._val), state_comp.updateWatchers.bind(state_comp));
+                        }
                         state_comp.updateWatchers();
                     },
                     get: () => { return (state_comp.type === "object") ? this[`_${state_comp.name}Proxy`] : state_comp._val; }

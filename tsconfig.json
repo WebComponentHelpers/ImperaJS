@@ -4,7 +4,8 @@
         "target": "es2018",
         "noImplicitAny": true,
         "outDir": "build/",
-        "sourceMap": false
+        "sourceMap": false,
+        "experimentalDecorators": true
     },
 
     "include": [
