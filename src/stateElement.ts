@@ -138,7 +138,11 @@ export class StateVariable extends StateTransition{
             let push_var = (this.type !== 'string') ? JSON.stringify(this._val) : this._val;
             localStorage.setItem(this.name, push_var);
         }
-        else throw TypeError(this._err_on_value);   
+        else {
+            if(_under_transition)  _under_transition = false;
+            if(_isCallback_locked) this.unlock_callbacks();
+            throw TypeError(this._err_on_value);   
+        }
     }
 
     RESET():void{
@@ -162,8 +166,10 @@ export class StateVariable extends StateTransition{
     }
 
     _checkIsAllowed(){
-        if(!this.allowStandaloneAssign && !_under_transition) 
+        if(!this.allowStandaloneAssign && !_under_transition) {
+            if(_under_transition) _under_transition = false;
             throw "StateVariable " + this.name + " is not allowed assignment outside a state transition";
+        }
     }
     updateWatcherIfAllowed(){
         this._checkIsAllowed();

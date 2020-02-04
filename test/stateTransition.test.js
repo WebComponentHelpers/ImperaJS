@@ -69,11 +69,11 @@ export default function (){
 
             st.usrDefined_transition = (evt)=>{
                 if(state_num.value === 123){
-                    state_num.auto_value = 321;
-                    state_obj.auto_value.c.push(8);
+                    state_num.value = 321;
+                    state_obj.value.c.push(8);
                 }
-                state_obj.auto_value.a = "hey";
-                state_var.auto_value = "bella";
+                state_obj.value.a = "hey";
+                state_var.value = "bella";
             }
 
 
@@ -90,7 +90,7 @@ export default function (){
             state_num.value = 123;
             st.updateWatchers({ciao:"nonsense"});
             chai.assert.equal(counter_st, 4, "Two watchers of Transition");
-            chai.assert.equal(counter_gb, 5, "global update + override");
+            chai.assert.equal(counter_gb, 6, "global update + override");
             chai.assert.equal(state_var.value, "bella", "user defined update works");
             chai.assert.equal(state_num.value, 321, "xcheck");
             chai.assert.deepEqual(state_obj.value.c, [1,2,3,8], "xcheck");

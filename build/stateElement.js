@@ -1,5 +1,6 @@
 import onChangeProxy from "./onChage.js";
 var _isCallback_locked = false;
+var _under_transition = false;
 const _transitions_callbackMap = new Map();
 // _transitions_callbackMap.clear();  // is this needed??  FIXME
 export class StateTransition {
@@ -23,7 +24,9 @@ export class StateTransition {
     }
     updateWatchers(input) {
         this.lock_callbacks();
+        _under_transition = true;
         this.usrDefined_transition(input);
+        _under_transition = false;
         // loop over watchers callbacks
         this._call_watchers(input);
         // loop over automatically added callbacks to _transitions_callbackMap
@@ -61,6 +64,8 @@ export class StateVariable extends StateTransition {
         this.default_val = DEFAULT;
         this._err_on_value = 'Wrong type assignment to state variable: ' + this.name;
         this._valueProxy = undefined;
+        this._auto_valueProxy = undefined;
+        this.allowStandaloneAssign = true;
         // Sanity checks
         let white_list_types = ["string", "object", "number", "boolean"];
         if (!white_list_types.includes(this.type))
@@ -68,17 +73,28 @@ export class StateVariable extends StateTransition {
         // set default variable if none
         this._val = this.GET() || this.CREATE(this.default_val);
         // proxy
-        if (this.type === "object")
-            this._valueProxy = onChangeProxy(this._val, this.UPDATE_DATA.bind(this));
+        this._set_proxies();
+    }
+    _set_proxies() {
+        if (this.type === "object" && typeof (this._val) === "object") {
+            this._valueProxy = onChangeProxy(this._val, this.updateWatcherIfAllowed.bind(this));
+            this._auto_valueProxy = onChangeProxy(this._val, this._markForWatchersUpdate.bind(this));
+        }
     }
     set value(val) {
+        this._checkIsAllowed();
         this._val = val;
-        if (this.type === "object" && typeof (val) === "object")
-            this._valueProxy = onChangeProxy(this._val, this.UPDATE_DATA.bind(this));
-        this.UPDATE_DATA();
+        this._set_proxies();
+        if (_under_transition)
+            this._markForWatchersUpdate();
+        else
+            this.updateWatchers();
     }
     get value() {
-        return (this.type === "object") ? this._valueProxy : this._val;
+        if (_under_transition)
+            return (this.type === "object") ? this._auto_valueProxy : this._val;
+        else
+            return (this.type === "object") ? this._valueProxy : this._val;
     }
     CREATE(me) {
         if (typeof (me) === this.type) {
@@ -94,8 +110,13 @@ export class StateVariable extends StateTransition {
             let push_var = (this.type !== 'string') ? JSON.stringify(this._val) : this._val;
             localStorage.setItem(this.name, push_var);
         }
-        else
+        else {
+            if (_under_transition)
+                _under_transition = false;
+            if (_isCallback_locked)
+                this.unlock_callbacks();
             throw TypeError(this._err_on_value);
+        }
     }
     RESET() {
         this.value = this.default_val;
@@ -111,16 +132,20 @@ export class StateVariable extends StateTransition {
         }
         return return_val;
     }
-    get auto_value() {
-        this._markForWatchersUpdate();
-        return this.value;
-    }
-    set auto_value(val) {
-        this._markForWatchersUpdate();
-        this.value = val;
-    }
     _markForWatchersUpdate() {
+        this.UPDATE_DATA();
         _transitions_callbackMap.set(this, this._call_watchers.bind(this));
+    }
+    _checkIsAllowed() {
+        if (!this.allowStandaloneAssign && !_under_transition) {
+            if (_under_transition)
+                _under_transition = false;
+            throw "StateVariable " + this.name + " is not allowed assignment outside a state transition";
+        }
+    }
+    updateWatcherIfAllowed() {
+        this._checkIsAllowed();
+        this.updateWatchers();
     }
     updateWatchers() {
         this.lock_callbacks();
@@ -162,13 +187,10 @@ export let statesMixin = (listOfComponents, baseClass) => class extends baseClas
             if (state_comp instanceof StateVariable) {
                 // adding proxy
                 if (state_comp.type === "object")
-                    this[`_${state_comp.name}Proxy`] = onChangeProxy(state_comp._val, state_comp.updateWatchers.bind(state_comp));
+                    this[`_${state_comp.name}Proxy`] = onChangeProxy(state_comp._val, () => { throw `${state_comp.name} cannot be assigned from a custom element`; });
                 Object.defineProperty(this, state_comp.name, {
                     set: (val) => {
-                        state_comp._val = val;
-                        if (state_comp.type === "object" && typeof (val) === "object")
-                            this["_" + state_comp.name + "Proxy"] = onChangeProxy(state_comp._val, state_comp.updateWatchers.bind(state_comp));
-                        state_comp.updateWatchers();
+                        throw `${state_comp.name} cannot be assigned from a custom element`;
                     },
                     get: () => { return (state_comp.type === "object") ? this[`_${state_comp.name}Proxy`] : state_comp._val; }
                 });
@@ -211,3 +233,25 @@ export let statesMixin = (listOfComponents, baseClass) => class extends baseClas
         }
     }
 };
+/**
+ * Prototype for Global Var
+ */
+class GlobalVar {
+    constructor(name, defaultVal, key) {
+        this.key = key || "none";
+        this.name = name;
+        this._var = new StateVariable(name + ":" + key, defaultVal);
+    }
+    setValue(inputVal) {
+        this._var.value = inputVal;
+    }
+    setKey(inputKey) {
+        this.key = inputKey;
+        this._var.name = this.name + ":" + this.key;
+        // set default variable if none
+        this._var._val = this._var.GET() || this._var.CREATE(this._var.default_val);
+    }
+    getVar() {
+        return this._var;
+    }
+}

@@ -147,6 +147,22 @@ export default function (){
                 chai.assert.equal(localStorage.getItem('test_bool'),"true", "bool " );
                 chai.assert.equal(counter,4,"Called once ");
             });
+
+             
+            it('Object updates, Proxy fires also on subobjects',()=>{
+                let test_obj =  new StateVariable("test_object",{});
+
+                test_obj.value = {a:1,b:{c:1,d:[8,9]}};
+                let temp = test_obj.value.b;
+                temp.c = 7;
+                let temp2 = test_obj.value.a
+                temp2 = 89;
+                chai.assert.equal( test_obj.value.b.c,7,"Subobject Proxy fires");
+                temp.d.push(10);
+                chai.assert.equal( JSON.stringify({a:1,b:{c:7,d:[8,9,10]}}), localStorage.getItem("test_object"),"Subobject Proxy fires and subProp not modify");
+
+            });
+
         });
 
     });
