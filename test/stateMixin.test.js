@@ -15,18 +15,19 @@ export default function(){
             let b_obj =0;
             let message2 = "";
             let message = "";
-        it('Init: initialize wc correctly with all property',()=>{
+
 
             var sv_n = new StateVariable("num", 7);
             var sv_s = new StateVariable("str", "ciao");
             var sv_obj = new StateVariable("obj", {ciao:"bella", hey:[1,2,3]});
 
-            
             var st_count = new StateTransition("count");
             st_count.usrDefined_transition = (input)=>{
                 if(input) c_tr = input.val;
                 else c_tr++;
             };
+
+        it('Init: initialize wc correctly with all property',()=>{
 
             let obj = {bellapete:42};
             sv_n.attachWatcher(obj,()=>{c_n++;});
@@ -73,18 +74,17 @@ export default function(){
             chai.assert.equal(c_tr ,7, "transition ");
             chai.assert.equal(b_tr ,0, "transition not connected shouldnot run");
 
-            ist.num = 23;
-            chai.assert.equal(c_n ,1, "var num fake watcher");
-            chai.assert.equal(b_n ,0, "var num: not connected should not run");
+            let func = ()=>{ ist.num = 23 };
+            let func2 = ()=>{ ist.obj = {hey:"dude"}; };
+            let func3 = ()=>{ ist.str = "po"; };
+            let func4 = ()=>{ let t = ist.obj.hey ; t.push(6); };
 
-            ist.str = "po";
-            chai.assert.equal(c_s ,1, "var str fake watcher");
-            chai.assert.equal(b_s ,0, "var str not connected should not run ");
-
-            ist.obj = {hey:"dude"};
-            chai.assert.equal(c_obj ,1, "var obj fake watcher");
-            chai.assert.equal(b_obj ,0, "var obj not connected should not run ");
-
+            chai.assert.Throw(func, "num cannot be assigned from a custom element");
+            chai.assert.Throw(func2, "obj cannot be assigned from a custom element");
+            chai.assert.Throw(func3, "str cannot be assigned from a custom element");
+            chai.assert.deepEqual(ist.obj,{ciao:"bella", hey:[1,2,3]} , "xcheck");
+            chai.assert.Throw(func4, "obj cannot be assigned from a custom element");
+            
             ist.sendMessageOnChannel("mess",{message:"ciao"});
             chai.assert.equal(message,"ciao", "message is sent");
             chai.assert.equal(message2,"", "not connected mesage call back should not run");
@@ -114,15 +114,15 @@ export default function(){
             chai.assert.equal(c_tr ,7, "transition fake2");
             chai.assert.equal(b_tr ,2, "transition ");
 
-            ist.num = 23;
+            sv_n.value = 23;
             chai.assert.equal(c_n ,1, "var num fake watcher");
             chai.assert.equal(b_n ,1, "var num: ");
 
-            ist.str = "po";
+            sv_s.value = "po";
             chai.assert.equal(c_s ,1, "var str fake watcher");
             chai.assert.equal(b_s ,1, "var str");
 
-            ist.obj = {hey:"dude"};
+            sv_obj.value = {hey:"dude"};
             chai.assert.equal(c_obj ,1, "var obj fake watcher");
             chai.assert.equal(b_obj ,1, "var obj ");
 
@@ -155,15 +155,15 @@ export default function(){
             chai.assert.equal(c_tr ,7, "transition fake2");
             chai.assert.equal(b_tr ,0, "transition ");
 
-            ist.num = 23;
+            sv_n.value = 28;
             chai.assert.equal(c_n ,1, "var num fake watcher");
             chai.assert.equal(b_n ,0, "var num: ");
 
-            ist.str = "po";
+            sv_s.value = "poi";
             chai.assert.equal(c_s ,1, "var str fake watcher");
             chai.assert.equal(b_s ,0, "var str");
 
-            ist.obj = {hey:"dude"};
+            sv_obj.value = {hey:"dudo"};
             chai.assert.equal(c_obj ,1, "var obj fake watcher");
             chai.assert.equal(b_obj ,0, "var obj ");
 
@@ -173,9 +173,16 @@ export default function(){
 
         });
         describe('Performance',()=>{
-            it('Update of a 1000 element takes < 120mus',()=>{
+            it('Update of a 1000 element takes < 200mus',()=>{
                 let n_cycles = 1000;
                 let n_elements = 1000;
+
+                st_count.usrDefined_transition = (input)=>{
+                    if(input) c_tr = input.val;
+                    else c_tr++;
+                    sv_n.value = c_tr;
+                };
+    
 
                 for(let i=0; i < n_elements; i++){
                     let tmp = document.createElement('t-uno');
@@ -188,10 +195,10 @@ export default function(){
 
                 let start = performance.now();
                 for(let i=0; i < n_cycles; i++){
-                    motherfucker.num = i;
+                    motherfucker.applyTransition("count",{val:i});
                 }
                 let time_avg = (performance.now() - start) / n_cycles;
-                chai.assert.isBelow(time_avg * 1000 , 120, "take too much time");
+                chai.assert.isBelow(time_avg * 1000 , 200, "take too much time");
                 chai.assert.equal(b_n, n_cycles*n_elements, "something fishy :***");
             });
         });

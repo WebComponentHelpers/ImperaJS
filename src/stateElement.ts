@@ -6,18 +6,16 @@ var _under_transition = false;
 const _transitions_callbackMap :  Map<StateVariable, Function> = new Map();
 // _transitions_callbackMap.clear();  // is this needed??  FIXME
 
-export class StateTransition {
-    name : string;
-    callbackMap : Map<EventTarget,Function> ;
-    usrDefined_transition: Function;
+class BaseState{
+    callbackMap : Map<EventTarget,Function> 
+    name : string
 
     constructor(NAME:string){
         this.name = NAME;
         this.callbackMap = new Map();
-        this.usrDefined_transition = undefined;
-
         if(typeof(this.name) !== "string") throw Error("Variable name must be a string.");
     }
+
 
     lock_callbacks(){
         if(_isCallback_locked) {
@@ -31,25 +29,6 @@ export class StateTransition {
         _isCallback_locked = false;
     }
 
-    updateWatchers( input?:any ) :void {
-
-        this.lock_callbacks();
-
-        _under_transition = true;
-        this.usrDefined_transition(input);
-        _under_transition = false;
-
-        // loop over watchers callbacks
-        this._call_watchers(input);
-
-        // loop over automatically added callbacks to _transitions_callbackMap
-        for (let upd_callback of _transitions_callbackMap.values()){
-            upd_callback();
-        }
-
-        _transitions_callbackMap.clear();
-        this.unlock_callbacks();
-    }
 
     _call_watchers(input?:any){
         for( let update_callback of this.callbackMap.values()){
@@ -74,7 +53,33 @@ export class StateTransition {
 
 }
 
-export class StateVariable extends StateTransition{
+export class StateTransition extends BaseState{
+    
+    usrDefined_transition(input?:any){}
+
+    applyTransition( input?:any ) :void {
+
+        this.lock_callbacks();
+
+        _under_transition = true;
+        this.usrDefined_transition(input);
+        _under_transition = false;
+
+        // loop over watchers callbacks
+        this._call_watchers(input);
+
+        // loop over automatically added callbacks to _transitions_callbackMap
+        for (let upd_callback of _transitions_callbackMap.values()){
+            upd_callback();
+        }
+
+        _transitions_callbackMap.clear();
+        this.unlock_callbacks();
+    }
+
+}
+
+export class StateVariable extends BaseState{
     type : string;
     default_val : any ;
     _err_on_value :string;
@@ -82,6 +87,7 @@ export class StateVariable extends StateTransition{
     _valueProxy: ProxyConstructor;
     _auto_valueProxy: ProxyConstructor;
     allowStandaloneAssign:boolean;
+    transitionMap : Map<string,StateTransition>
 
     constructor(NAME:string, DEFAULT:any){   // FIXME DEFAULT HAS A TYPE OF TYPE
         super(NAME);
@@ -91,6 +97,7 @@ export class StateVariable extends StateTransition{
         this._valueProxy = undefined;
         this._auto_valueProxy = undefined;
         this.allowStandaloneAssign = true;
+        this.transitionMap = new Map();
 
         // Sanity checks
         let white_list_types = ["string", "object", "number", "boolean"];
@@ -187,19 +194,31 @@ export class StateVariable extends StateTransition{
         this.unlock_callbacks();
     }
     
+    addTransition(name:string, func:Function){
+        let t = new StateTransition(name);
+        if(typeof(func) === "function"){
+            t.usrDefined_transition = func.bind(this);
+            this.transitionMap.set(name,t);
+            this.allowStandaloneAssign = false;
+        }
+    }
+
+    applyTransition(name:string,input?:any){
+        if(this.transitionMap.has(name))
+            this.transitionMap.get(name).applyTransition(input);
+        else throw Error(`Transition ${name} not found`);
+    }
+    
 
 }
 
-export class Message extends StateTransition{
-    updateWatchers(input:any) :void {
+export class Message extends BaseState{
+    sendMessage(input:any) :void {
         this._call_watchers(input);
     }
 }
 
 
-// mixin to be applied to a web-component
-// FIXME: 
-//  - make test machinery
 export let statesMixin = (listOfComponents:Array<StateVariable|StateTransition|Message>, baseClass:any) => class extends baseClass {
     _transitionMap : Map<String,any>
     _messageMap :Map<String,any>
@@ -240,10 +259,10 @@ export let statesMixin = (listOfComponents:Array<StateVariable|StateTransition|M
                 });
           }
           else if(state_comp instanceof Message){
-            this._messageMap.set(state_comp.name, state_comp.updateWatchers.bind(state_comp));
+            this._messageMap.set(state_comp.name, state_comp.sendMessage.bind(state_comp));
           }
           else if(state_comp instanceof StateTransition){
-                this._transitionMap.set(state_comp.name, state_comp.updateWatchers.bind(state_comp));
+                this._transitionMap.set(state_comp.name, state_comp.applyTransition.bind(state_comp));
           }
           else {
                 throw TypeError("Accept only StateVariable, StateTransition or Message.");   

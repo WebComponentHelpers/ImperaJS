@@ -3,11 +3,10 @@ var _isCallback_locked = false;
 var _under_transition = false;
 const _transitions_callbackMap = new Map();
 // _transitions_callbackMap.clear();  // is this needed??  FIXME
-export class StateTransition {
+class BaseState {
     constructor(NAME) {
         this.name = NAME;
         this.callbackMap = new Map();
-        this.usrDefined_transition = undefined;
         if (typeof (this.name) !== "string")
             throw Error("Variable name must be a string.");
     }
@@ -21,20 +20,6 @@ export class StateTransition {
     }
     unlock_callbacks() {
         _isCallback_locked = false;
-    }
-    updateWatchers(input) {
-        this.lock_callbacks();
-        _under_transition = true;
-        this.usrDefined_transition(input);
-        _under_transition = false;
-        // loop over watchers callbacks
-        this._call_watchers(input);
-        // loop over automatically added callbacks to _transitions_callbackMap
-        for (let upd_callback of _transitions_callbackMap.values()) {
-            upd_callback();
-        }
-        _transitions_callbackMap.clear();
-        this.unlock_callbacks();
     }
     _call_watchers(input) {
         for (let update_callback of this.callbackMap.values()) {
@@ -57,7 +42,24 @@ export class StateTransition {
         this.callbackMap.delete(target);
     }
 }
-export class StateVariable extends StateTransition {
+export class StateTransition extends BaseState {
+    usrDefined_transition(input) { }
+    applyTransition(input) {
+        this.lock_callbacks();
+        _under_transition = true;
+        this.usrDefined_transition(input);
+        _under_transition = false;
+        // loop over watchers callbacks
+        this._call_watchers(input);
+        // loop over automatically added callbacks to _transitions_callbackMap
+        for (let upd_callback of _transitions_callbackMap.values()) {
+            upd_callback();
+        }
+        _transitions_callbackMap.clear();
+        this.unlock_callbacks();
+    }
+}
+export class StateVariable extends BaseState {
     constructor(NAME, DEFAULT) {
         super(NAME);
         this.type = typeof (DEFAULT);
@@ -66,6 +68,7 @@ export class StateVariable extends StateTransition {
         this._valueProxy = undefined;
         this._auto_valueProxy = undefined;
         this.allowStandaloneAssign = true;
+        this.transitionMap = new Map();
         // Sanity checks
         let white_list_types = ["string", "object", "number", "boolean"];
         if (!white_list_types.includes(this.type))
@@ -154,15 +157,26 @@ export class StateVariable extends StateTransition {
         this._call_watchers();
         this.unlock_callbacks();
     }
+    addTransition(name, func) {
+        let t = new StateTransition(name);
+        if (typeof (func) === "function") {
+            t.usrDefined_transition = func.bind(this);
+            this.transitionMap.set(name, t);
+            this.allowStandaloneAssign = false;
+        }
+    }
+    applyTransition(name, input) {
+        if (this.transitionMap.has(name))
+            this.transitionMap.get(name).applyTransition(input);
+        else
+            throw Error(`Transition ${name} not found`);
+    }
 }
-export class Message extends StateTransition {
-    updateWatchers(input) {
+export class Message extends BaseState {
+    sendMessage(input) {
         this._call_watchers(input);
     }
 }
-// mixin to be applied to a web-component
-// FIXME: 
-//  - make test machinery
 export let statesMixin = (listOfComponents, baseClass) => class extends baseClass {
     constructor() {
         super();
@@ -196,10 +210,10 @@ export let statesMixin = (listOfComponents, baseClass) => class extends baseClas
                 });
             }
             else if (state_comp instanceof Message) {
-                this._messageMap.set(state_comp.name, state_comp.updateWatchers.bind(state_comp));
+                this._messageMap.set(state_comp.name, state_comp.sendMessage.bind(state_comp));
             }
             else if (state_comp instanceof StateTransition) {
-                this._transitionMap.set(state_comp.name, state_comp.updateWatchers.bind(state_comp));
+                this._transitionMap.set(state_comp.name, state_comp.applyTransition.bind(state_comp));
             }
             else {
                 throw TypeError("Accept only StateVariable, StateTransition or Message.");

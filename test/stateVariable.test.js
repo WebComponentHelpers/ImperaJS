@@ -8,6 +8,8 @@ export default function (){
         describe("Instantiation",()=>{
             
             it("Instantiated to the store,proper name and initial value",()=>{
+                localStorage.clear();
+
                 let test_string =  new StateVariable("test_string","ciao");
                 let test_number =  new StateVariable("test_number", 7);
                 let test_object =  new StateVariable("test_object",{ciao:"bella", hey:67, poz:["cool", 9]});
@@ -32,6 +34,8 @@ export default function (){
 
 
             it("throws for wrong init type",()=>{
+                localStorage.clear();
+
                 let pollo;
                 let test_function = () =>{console.log("ciao"); };
                 let test_function2 = () =>{let a = new StateVariable("test_function",test_function); };
@@ -45,6 +49,8 @@ export default function (){
         describe('Input Output',()=>{
     
             it("Getter and Setters return proper value and type.",()=>{
+                localStorage.clear();
+
                 let test_string =  new StateVariable("test_string","ciao");
                 let test_number =  new StateVariable("test_number", 7);
                 let test_object =  new StateVariable("test_object",{ciao:"bella", hey:67, poz:["cool", 9]});
@@ -64,6 +70,8 @@ export default function (){
             });
             
             it("Throws when corrupted, also additional throw test of setter",()=>{
+                localStorage.clear();
+
                 // only number bool and object can be corrupted, strings cant because of performance cut on JSON parse
                 // Also the throw of set function has been tested already in the init (few more here)
                 let test_object =  new StateVariable("test_object",{ciao:"bella", hey:67, poz:["cool", 9]});
@@ -101,6 +109,8 @@ export default function (){
         describe('Update Watchers',()=>{
             
             it('It locks',()=>{
+                localStorage.clear();
+
                 let test_string =  new StateVariable("test_string","ciao");
                 let test_number =  new StateVariable("test_number", 7);
                 let double_mod = ()=>{ test_number.value = 8; test_number.updateWatchers() };
@@ -112,6 +122,8 @@ export default function (){
             });
 
             it('It updates data and call watchers only once and unlocks',()=>{
+                localStorage.clear();
+
                 let test_string =  new StateVariable("test_string","ciao");
                 let test_number =  new StateVariable("test_number", 7);
                 let test_object =  new StateVariable("test_object",{ciao:"bella", hey:67, poz:["cool", 9]});
@@ -150,6 +162,8 @@ export default function (){
 
              
             it('Object updates, Proxy fires also on subobjects',()=>{
+                localStorage.clear();
+
                 let test_obj =  new StateVariable("test_object",{});
 
                 test_obj.value = {a:1,b:{c:1,d:[8,9]}};
@@ -163,6 +177,26 @@ export default function (){
 
             });
 
+        });
+
+        describe("Self transitions",()=>{
+            it('Add transitions',()=>{
+                localStorage.clear();
+                let sv =  new StateVariable("test_object",{ ciao:"bella", hey:67, cj:["cool", 9] });
+
+                sv.addTransition("pino",function(){
+                    console.log(this);
+                    this.value.cj.push(10);
+                    this.value.ciao = "ciao";
+                });
+
+                let func = () => {sv.value = {j:90} }
+
+                chai.assert.Throw(func,'StateVariable test_object is not allowed assignment outside a state transition')
+                sv.applyTransition("pino");
+                chai.assert.equal(sv.value.ciao,"ciao", 'variable can be modified by own transition')
+
+            });
         });
 
     });

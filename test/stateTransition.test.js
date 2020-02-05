@@ -30,8 +30,8 @@ export default function (){
         document.st = st;
         document.vr = state_num;
 
-        let fu5 = (a)=>{ st_t.updateWatchers(); };
-        let fu6 = (a)=>{ st_t.updateWatchers(); };
+        let fu5 = (a)=>{ st_t.applyTransition(); };
+        let fu6 = (a)=>{ st_t.applyTransition(); };
         let fu7 = (a)=>{ message = a.message ; };
 
         
@@ -79,7 +79,7 @@ export default function (){
 
             chai.assert.equal(state_var.value, "ciao", "xcheck");
             chai.assert.equal(state_num.value, 765, "xcheck");
-            st.updateWatchers({ciao:"nonsense"});
+            st.applyTransition({ciao:"nonsense"});
 
             chai.assert.equal(counter_st, 2, "Two watchers of Transition");
             chai.assert.equal(counter_gb, 2, "Two global update");
@@ -88,7 +88,7 @@ export default function (){
             chai.assert.equal(state_num.value, 765, "xcheck");
 
             state_num.value = 123;
-            st.updateWatchers({ciao:"nonsense"});
+            st.applyTransition({ciao:"nonsense"});
             chai.assert.equal(counter_st, 4, "Two watchers of Transition");
             chai.assert.equal(counter_gb, 6, "global update + override");
             chai.assert.equal(state_var.value, "bella", "user defined update works");
@@ -97,7 +97,7 @@ export default function (){
 
             
             st.attachWatcher(test_target6,fu6);
-            let func = ()=>{ st.updateWatchers({ciao:"ciao"}); };
+            let func = ()=>{ st.applyTransition({ciao:"ciao"}); };
             let func2 = ()=>{ st.attachWatcher(test_target5,fu5); };
 
             chai.assert.Throw(func, "Forbidden multiple-update during an update callback loop");
@@ -114,6 +114,20 @@ export default function (){
             chai.assert.equal(st.callbackMap.size, 2, "size of map");
         });
 
+        it('Forbid Standalone out of transition',()=>{
+
+            state_var.allowStandaloneAssign = false;
+            st.usrDefined_transition = () =>{
+                state_var.value = "kkk"
+            }
+            let func = () =>{ state_var.value = "jjj"}
+
+            chai.assert.Throw(func, "StateVariable test_var is not allowed assignment outside a state transition");
+            st.applyTransition()
+            chai.assert.equal(state_var.value, "kkk", "Not Allowed State Var can be modified in state transition");
+
+        });
+
         it('Async ',()=>{
 
             let order = [0];
@@ -127,13 +141,13 @@ export default function (){
 
             st.usrDefined_transition = async (evt)=>{
                 var result = await promessa();
-                st_t.updateWatchers();
+                st_t.applyTransition();
             }
             
 
             st_t.usrDefined_transition = (vet)=>{ order.push(2); };
 
-            st.updateWatchers();
+            st.applyTransition();
 
             setTimeout(() => { 
                 try{
@@ -153,7 +167,7 @@ export default function (){
             it('Update Handler pass the message',()=>{
                 let ev8 = {message:"cazzone"};
 
-                mess.updateWatchers(ev8);
+                mess.sendMessage(ev8);
                 chai.assert.equal(message, "cazzone", "message doesn't work");
             });
         });
