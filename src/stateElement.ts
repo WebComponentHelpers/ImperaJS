@@ -224,11 +224,22 @@ export let statesMixin = (listOfComponents:Array<StateVariable|StateTransition|M
     _messageMap :Map<String,any>
 
     constructor(){
-        super();
-        this._transitionMap = new Map();
-        this._messageMap = new Map();
-        this._addGetterSetters();
+        super()
+        this._transitionMap = new Map()
+        this._messageMap = new Map()
+        this._extractTransitions()
+        this._addGetterSetters()
+    }
 
+    _extractTransitions(){
+        for (let itr=0; itr < listOfComponents.length; itr++){
+            let comp = listOfComponents[itr]
+            if(comp instanceof StateVariable){
+                for(let t of comp.transitionMap.values()){
+                    listOfComponents.push(t)
+                }
+            }
+        }
     }
 
     applyTransition(name:string,input?:any){

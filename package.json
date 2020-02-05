@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "sideEffects": false,
   "description": "Proxy based state managment and data bindings for web-components",
-  "main": "build/index.js",
+  "main": "build/impera.js",
   "types": "src/impera.ts",
   "scripts": {
     "build": "tsc",

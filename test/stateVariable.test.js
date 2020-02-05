@@ -185,7 +185,6 @@ export default function (){
                 let sv =  new StateVariable("test_object",{ ciao:"bella", hey:67, cj:["cool", 9] });
 
                 sv.addTransition("pino",function(){
-                    console.log(this);
                     this.value.cj.push(10);
                     this.value.ciao = "ciao";
                 });

@@ -20,6 +20,11 @@ export default function(){
             var sv_n = new StateVariable("num", 7);
             var sv_s = new StateVariable("str", "ciao");
             var sv_obj = new StateVariable("obj", {ciao:"bella", hey:[1,2,3]});
+            
+            sv_n.addTransition("SubTransition",()=>{
+                sv_n.value = 78;
+            })
+            sv_n.allowStandaloneAssign = true;
 
             var st_count = new StateTransition("count");
             st_count.usrDefined_transition = (input)=>{
@@ -54,7 +59,7 @@ export default function(){
             chai.assert.equal(ist.str, "ciao", "State var properties");
             chai.assert.deepEqual(ist.obj,{ciao:"bella", hey:[1,2,3]} , "State var properties");
 
-            chai.assert.hasAllKeys(ist._transitionMap, ["count"], "maps");
+            chai.assert.hasAllKeys(ist._transitionMap, ["count", "SubTransition"], "maps");
             chai.assert.hasAllKeys(ist._messageMap, ["mess"], "maps");
             chai.assert.typeOf(ist.applyTransition, "function");
             chai.assert.typeOf(ist.sendMessageOnChannel, "function");
@@ -198,6 +203,7 @@ export default function(){
                     motherfucker.applyTransition("count",{val:i});
                 }
                 let time_avg = (performance.now() - start) / n_cycles;
+                console.log("Performance time per cycle in mus: ", time_avg * 1000);
                 chai.assert.isBelow(time_avg * 1000 , 200, "take too much time");
                 chai.assert.equal(b_n, n_cycles*n_elements, "something fishy :***");
             });
