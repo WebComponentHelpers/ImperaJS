@@ -12,7 +12,7 @@ citizens. The main features are:
 
 - It's tiny, only about 5 kB minified (and 1.9 kB gzipped).
 - It uses Proxy under the hood for a little :sparkler:
-- It is meant for custom-elements, so you can use it with vanilla JS or any framework like lit-element, [Brick](https://www.npmjs.com/package/brick-element).
+- It is meant for custom-elements, so you can use it with vanilla JS or any framework like [lit-element](https://www.npmjs.com/package/lit-element), [Brick](https://www.npmjs.com/package/brick-element).
 - Implements the usual flow: ACTION->REDUCER->STORE but with A LOOOOT less painfull sintax.
 - You can break the STORE in parts as small as you like.
 - Works with async out of the box.
