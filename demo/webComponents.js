@@ -75,22 +75,25 @@ async function with_bulma(){
         ${bulma}
         
         <div class="tags has-addons is-centered" style="margin-bottom:0rem">
-            <span ${"#-status"} class="tag is-warning" onclick="this.root.toggle.bind(this.root)">Pending</span>
+            <span ${"#-status"} class="tag is-warning" onclick="this.root.toggle.bind(this.root)()">Pending</span>
             <span ${"#-text"} class="tag is-info">Todo text</span>
             <a class="tag is-delete is-light"></a>
         </div>
-        ${"|*index|isDone|text*|"}
+        ${"|*index|isDonne|text*|"}
     `;
     
     dfn("my-todo", class extends mxn_todo(HTMLElement){
-        on_text_change(val){
+        update_text(val){
             this.ids.text.innerText = val;
         }
-        on_isDone_change(val){
-            this.ids.innerText = (val === "true") ? "Done" : "Pending";
+        update_isDonne(val){
+            console.log("doing")
+            //this.ids.status.innerText = (val === "true") ? "Done" : "Pending";
         }
         toggle(){
-            this.applyTransition("toggleTodo",this.index);
+            //this.applyTransition("toggleTodo",this.index);
+            console.log("done ", this.isDonne);
+            this.isDon = "true";
         }
     });
 }
