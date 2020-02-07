@@ -243,9 +243,16 @@ export let statesMixin = (listOfComponents, baseClass) => class extends baseClas
                     //@ts-ignore
                     state_comp.attachWatcher(this, this[`gotMessage_${state_comp.name}`].bind(this));
             }
-            else if (this[`on_${state_comp.name}_update`])
+            else if (state_comp instanceof StateTransition) {
+                if (this[`on_${state_comp.name}`])
+                    //@ts-ignore
+                    state_comp.attachWatcher(this, this[`on_${state_comp.name}`].bind(this));
+            }
+            else if (this[`on_${state_comp.name}_update`]) {
                 //@ts-ignore
                 state_comp.attachWatcher(this, this[`on_${state_comp.name}_update`].bind(this));
+                this[`on_${state_comp.name}_update`]();
+            }
         }
     }
     disconnectedCallback() {
