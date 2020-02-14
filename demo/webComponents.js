@@ -55,7 +55,7 @@ let mxn_todo = html`
         </style>
 
         <div class="tags has-addons is-centered" style="margin-bottom:0rem">
-            <span ${"#-status"} class="tag is-warning" onclick="this.root.toggle.bind(this.root)()">Pending</span>
+            <span ${"#-status"} class="tag is-warning" onclick="this.root.toggle()">Pending</span>
             <span ${"#-text"} class="tag is-info">Todo text</span>
             <a class="tag is-delete is-light" onclick="this.root.applyTransition('removeTodo',this.root.index)"></a>
         </div>
@@ -87,7 +87,7 @@ dfn("my-todo", class extends mxn_todo(StateElement){
 let mxn_container = html`
         ${bulma}
         <style>
-            div.box{
+            div.container{
                 margin:20% auto;
                 max-width: 30rem;
             }            
@@ -95,10 +95,13 @@ let mxn_container = html`
                 margin-top:2rem;
             }
         </style>
+        <div class="container">
+        <span class="subtitle is-4 has-text-info"> ImperaJs</span> <span class="subtitle is-4">Todo App</span>
         <div class ="box" style="padding:3rem">
                 <slot name="head"></slot>
          <div class="withmargin" >
             <div ${"#-content"}></div>
+        </div>
         </div>
         </div>
 `;

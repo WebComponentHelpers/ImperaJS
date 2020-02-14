@@ -18,6 +18,10 @@ citizens. The main features are:
 - Works with async out of the box.
 - It is tested.
 
+# Demo
+
+Have a look at a [simple todo App demo](https://webcomponenthelpers.github.io/ImperaJS/demo/) made with ImperaJs.
+
 # Getting Started
 
 Of course... new framework, new sets of names for the same things... So let's first get the namings right:
