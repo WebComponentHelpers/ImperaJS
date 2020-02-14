@@ -1,16 +1,18 @@
 import {brick as html,templateme,dfn} from 'https://webcomponenthelpers.github.io/Brick/brick-element.js'
-
+import {todos} from './Store.js'
+import {statesMixin} from '../build/impera.js'
 
 
 async function with_bulma(){
-   // fetching bulma -  is a bit dirty, but hey is just a demo ;)
-   let response = await  fetch('https://cdn.jsdelivr.net/npm/bulma@0.8.0/css/bulma.min.css');
-   let txt = await response.text();
-   const bulma =  templateme`<style>${txt}</style>`
+    // fetching bulma -  is a bit dirty, but hey is just a demo ;)
+    let response = await  fetch('https://cdn.jsdelivr.net/npm/bulma@0.8.0/css/bulma.min.css');
+    let txt = await response.text();
+    const bulma =  templateme`<style>${txt}</style>`
+ 
+// dummy class with state mixin
+class StateElement extends statesMixin([todos],HTMLElement){}
 
-
-
-   let mxn_input = html` 
+let mxn_input = html` 
         ${bulma}
 
         <div class="columns is-centered">
@@ -25,21 +27,64 @@ async function with_bulma(){
         </div>
         </div>
         </div>
-    `;
+`;
 
-    dfn("my-input", class extends mxn_input(HTMLElement){
+dfn("my-input", class extends mxn_input(StateElement){
         constructor(){
             super();
             this.ids.btn.onclick = this.add_todos.bind(this);
+            this.onkeydown = (function (e){ if(e.which === 13) this.add_todos()}).bind(this)
         }
         add_todos(){
-            //this.applyTransition("addTodo",this.ids.inpt.value);
-            console.log(this.ids.inpt.value);
+            if(this.ids.inpt.value !== ""){
+                this.applyTransition("addTodo",this.ids.inpt.value);
+                this.ids.inpt.value = "";
+            }
         }
-    });
+});
 
 
-    let mxn_container = html`
+
+
+let mxn_todo = html`
+        ${bulma}
+        <style>
+            #status {
+                cursor:pointer;
+            }
+        </style>
+
+        <div class="tags has-addons is-centered" style="margin-bottom:0rem">
+            <span ${"#-status"} class="tag is-warning" onclick="this.root.toggle.bind(this.root)()">Pending</span>
+            <span ${"#-text"} class="tag is-info">Todo text</span>
+            <a class="tag is-delete is-light" onclick="this.root.applyTransition('removeTodo',this.root.index)"></a>
+        </div>
+        ${"|*index|iscomplete|txt*|"}
+`;
+    
+dfn("my-todo", class extends mxn_todo(StateElement){
+        update_txt(val){
+            this.ids.text.innerText = val;
+        }
+        update_iscomplete(val){
+            if(val === "true"){
+                this.ids.status.innerText = "Done";
+                this.ids.status.classList.remove("is-warning")
+                this.ids.status.classList.add("is-success")
+            }
+            else {
+                this.ids.status.innerText = "pending";
+                this.ids.status.classList.remove("is-success")
+                this.ids.status.classList.add("is-warning")
+            }
+            
+        }
+        toggle(){
+            this.applyTransition("toggleTodo",this.index);
+        }
+});
+
+let mxn_container = html`
         ${bulma}
         <style>
             div.box{
@@ -53,50 +98,24 @@ async function with_bulma(){
         <div class ="box" style="padding:3rem">
                 <slot name="head"></slot>
          <div class="withmargin" >
-                <slot></slot>
+            <div ${"#-content"}></div>
         </div>
         </div>
-    `;
-    dfn("my-container", class extends mxn_container(HTMLElement){
-        on_todos_change(val){
-            this.innerHTML = "";
+`;
+dfn("my-container", class extends mxn_container(StateElement){
+        on_todos_update(val){
+            let todos_content = this.ids.content
+            todos_content.innerHTML = "";
             this.todos.forEach(function(todo,index){
                 let temp= document.createElement("my-todo");
-                temp.ingestData(todo);
-                /*index = index;
-                temp.text = todo.text
-                temp.isDone = todo.isDone;*/
-                this.appendChild(temp);
+                temp.index = index;
+                temp.txt = todo.txt;
+                temp.iscomplete = todo.isComplete;
+                todos_content.appendChild(temp);
             });
         }
-    });
+});
 
-    let mxn_todo = html`
-        ${bulma}
-        
-        <div class="tags has-addons is-centered" style="margin-bottom:0rem">
-            <span ${"#-status"} class="tag is-warning" onclick="this.root.toggle.bind(this.root)()">Pending</span>
-            <span ${"#-text"} class="tag is-info">Todo text</span>
-            <a class="tag is-delete is-light"></a>
-        </div>
-        ${"|*index|isDonne|text*|"}
-    `;
-    
-    dfn("my-todo", class extends mxn_todo(HTMLElement){
-        update_text(val){
-            this.ids.text.innerText = val;
-        }
-        update_isDonne(val){
-            console.log("doing")
-            //this.ids.status.innerText = (val === "true") ? "Done" : "Pending";
-        }
-        toggle(){
-            //this.applyTransition("toggleTodo",this.index);
-            console.log("done ", this.isDonne);
-            this.isDon = "true";
-        }
-    });
-}
-
+};
 
 with_bulma();

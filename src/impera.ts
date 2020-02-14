@@ -1,2 +1,2 @@
-export * from './onChage.js'
+export * from './onChange.js'
 export * from './stateElement.js'
