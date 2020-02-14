@@ -48,7 +48,7 @@ export default function(){
                 on_num_update(){  b_n++;   }
                 on_obj_update(){b_obj++;}
                 on_str_update(){b_s++;}
-                on_count_update(){b_tr++}
+                on_count(){b_tr++}
                 gotMessage_mess(input){message2 = input.message;}
             } );
 
@@ -117,19 +117,23 @@ export default function(){
             chai.assert.equal(b_tr ,1, "transition ");
             ist.applyTransition("count",{val:7});
             chai.assert.equal(c_tr ,7, "transition fake2");
+            // it is two because if it is stateVariable on attachment needs to run the side effects of element
             chai.assert.equal(b_tr ,2, "transition ");
 
             sv_n.value = 23;
             chai.assert.equal(c_n ,1, "var num fake watcher");
-            chai.assert.equal(b_n ,1, "var num: ");
+            // it is two because if it is stateVariable on attachment needs to run the side effects of element
+            chai.assert.equal(b_n ,2, "var num: ");
 
             sv_s.value = "po";
             chai.assert.equal(c_s ,1, "var str fake watcher");
-            chai.assert.equal(b_s ,1, "var str");
+            // it is two because if it is stateVariable on attachment needs to run the side effects of element
+            chai.assert.equal(b_s ,2, "var str");
 
             sv_obj.value = {hey:"dude"};
             chai.assert.equal(c_obj ,1, "var obj fake watcher");
-            chai.assert.equal(b_obj ,1, "var obj ");
+            // it is two because if it is stateVariable on attachment needs to run the side effects of element
+            chai.assert.equal(b_obj ,2, "var obj ");
 
             ist.sendMessageOnChannel("mess",{message:"ciao"});
             chai.assert.equal(message,"ciao", "message is sent");

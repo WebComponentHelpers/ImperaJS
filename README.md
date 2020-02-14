@@ -1,6 +1,6 @@
 # ImperaJS
 
-Tiny, Proxy based, custom-elements centric App State Managment.
+Tiny, Proxy based App State Managment for custom-elements
 
 # Main Features
 
