@@ -265,25 +265,3 @@ export let statesMixin = (listOfComponents, baseClass) => class extends baseClas
         }
     }
 };
-/**
- * Prototype for Global Var
- */
-class GlobalVar {
-    constructor(name, defaultVal, key) {
-        this.key = key || "none";
-        this.name = name;
-        this._var = new StateVariable(name + ":" + key, defaultVal);
-    }
-    setValue(inputVal) {
-        this._var.value = inputVal;
-    }
-    setKey(inputKey) {
-        this.key = inputKey;
-        this._var.name = this.name + ":" + this.key;
-        // set default variable if none
-        this._var._val = this._var.GET() || this._var.CREATE(this._var.default_val);
-    }
-    getVar() {
-        return this._var;
-    }
-}
