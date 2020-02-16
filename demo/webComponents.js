@@ -12,23 +12,24 @@ async function with_bulma(){
 // dummy class with state mixin
 class StateElement extends statesMixin([todos],HTMLElement){}
 
+
 let mxn_input = html` 
-        ${bulma}
+    ${bulma}
 
-        <div class="columns is-centered">
+    <div class="columns is-centered">
         <div class="field has-addons ">
-        <div class="control">
-          <input ${"#-inpt"}class="input" type="text" placeholder="Todo Text">
+            <div class="control">
+                <input ${"#-inpt"}class="input" type="text" placeholder="Todo Text">
+            </div>
+            <div class="control">
+                <a ${"#-btn"} class="button  is-info"> Add Todo </a>
+            </div>
         </div>
-        <div class="control">
-          <a ${"#-btn"} class="button  is-info">
-            Add Todo
-          </a>
-        </div>
-        </div>
-        </div>
+    </div>
 `;
-
+/**
+ * Input field, note we inherith from StateElement classs
+ */
 dfn("my-input", class extends mxn_input(StateElement){
         constructor(){
             super();
@@ -47,21 +48,25 @@ dfn("my-input", class extends mxn_input(StateElement){
 
 
 let mxn_todo = html`
-        ${bulma}
-        <style>
-            #status {
-                cursor:pointer;
-            }
-        </style>
+    ${bulma}
+    <style>
+        #status {
+            cursor:pointer;
+        }
+    </style>
 
-        <div class="tags has-addons is-centered" style="margin-bottom:0rem">
-            <span ${"#-status"} class="tag is-warning" onclick="this.root.toggle()">Pending</span>
-            <span ${"#-text"} class="tag is-info">Todo text</span>
-            <a class="tag is-delete is-light" onclick="this.root.applyTransition('removeTodo',this.root.index)"></a>
-        </div>
-        ${"|*index|iscomplete|txt*|"}
+    <div class="tags has-addons is-centered" style="margin-bottom:0rem">
+        <span ${"#-status"} class="tag is-warning" onclick="this.root.toggle()">Pending</span>
+        <span ${"#-text"} class="tag is-info">Todo text</span>
+        <a class="tag is-delete is-light" onclick="this.root.applyTransition('removeTodo',this.root.index)"></a>
+    </div>
+
+    ${"|*index|iscomplete|txt*|"}
 `;
-    
+/**
+ * Todo element, this is a simple tag to change state of each single todo.
+ * To change state we use ApplyTransition.
+ */    
 dfn("my-todo", class extends mxn_todo(StateElement){
         update_txt(val){
             this.ids.text.innerText = val;
@@ -85,26 +90,26 @@ dfn("my-todo", class extends mxn_todo(StateElement){
 });
 
 let mxn_container = html`
-        ${bulma}
-        <style>
-            div.container{
-                margin:20% auto;
-                max-width: 30rem;
-            }            
-            .withmargin{
-                margin-top:2rem;
-            }
-        </style>
-        <div class="container">
+    ${bulma}
+    <style>
+        .withmargin{
+           margin-top:2rem;
+        }
+    </style>
+    <div class="container">
         <span class="subtitle is-4 has-text-info"> ImperaJs</span> <span class="subtitle is-4">Todo App</span>
         <div class ="box" style="padding:3rem">
-                <slot name="head"></slot>
-         <div class="withmargin" >
-            <div ${"#-content"}></div>
+            <slot name="head"></slot>
+            <div class="withmargin" >
+                <div ${"#-content"}></div>
+            </div>
         </div>
-        </div>
-        </div>
+    </div>
 `;
+/**
+ * Container class that gets updated each time the todos State variable changes, this includes stateTransitions.
+ * It shows a list of todos.
+ */
 dfn("my-container", class extends mxn_container(StateElement){
         on_todos_update(val){
             let todos_content = this.ids.content
