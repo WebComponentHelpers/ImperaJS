@@ -355,7 +355,7 @@ let baseMixin = (listOfComponents:Array<StateVariable|StateTransition|Message>, 
  * @param listOfComponents is a list of StateVariables and StateTransition to add to the web-component
  * @param baseClass The class on which the mixin is applied
  */
-export let statesMixin = (listOfComponents:Array<StateVariable|StateTransition|Message>, baseClass:any) => class extends baseMixin(listOfComponents, baseClass) {
+export var statesMixin = (listOfComponents:Array<StateVariable|StateTransition|Message>, baseClass:any) => class extends baseMixin(listOfComponents, baseClass) {
     
     connectedCallback(){
         if(super['connectedCallback'] !== undefined) {

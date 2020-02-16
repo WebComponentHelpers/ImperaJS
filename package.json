@@ -2,7 +2,7 @@
   "name": "impera-js",
   "version": "0.0.0",
   "sideEffects": false,
-  "description": "Proxy based state managment and data bindings for web-components",
+  "description": "Tiny, Proxy based App State Managment for custom-elements",
   "main": "build/impera.js",
   "types": "src/impera.ts",
   "scripts": {
@@ -20,7 +20,9 @@
     "state",
     "app-state",
     "proxy",
-    "managment"
+    "managment",
+    "lit-element",
+    "custom-element"
   ],
   "author": "panmanfredini",
   "license": "MIT",

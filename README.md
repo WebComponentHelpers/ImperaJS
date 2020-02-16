@@ -13,10 +13,13 @@ citizens. The main features are:
 - It's tiny, only about 5 kB minified (and 1.9 kB gzipped).
 - It uses Proxy under the hood for a little :sparkler:
 - It is meant for custom-elements, so you can use it with Vanilla-JS or any framework like [lit-element](https://www.npmjs.com/package/lit-element), [Brick](https://www.npmjs.com/package/brick-element).
-- Implements the usual flow: ACTION->REDUCER->STORE but with A LOOOOT less painfull sintax.
+- Implements the usual flow: **ACTION**->**REDUCER**->**STORE** but with A LOOOOT less painfull sintax.
 - You can break the STORE in parts as small as you like.
 - Works with async out of the box.
 - Saves the state to ``localStorage`` automatically.
+
+If you are not familiar with the ACTION->REDUCER->STORE pattern and why is a good idea, have a look at the [Redux Docs](https://redux.js.org/introduction/core-concepts) where it is very well explained.
+
 
 # Demo
 
@@ -37,25 +40,156 @@ while a transition from one app state to another is implemented by **State-Trans
 State-Variables and Transitions can be hooked to custom-elements, so that on StateVarible change, or on dispatch of a Transition, the custom-element 
 can apply its own UI-related changes.
 
+### Install
+
+```bash
+npm i impera-js
+```
+
 ### StateVariables
-
-
-```js
-// init
-```
+A StateVariable hold the state of the App, its content can be a String, Object, Number and Boolean. Its **DEFAULT**  value is passed at creation time and defines the type of the variable, the type cannot be changed later. A StateVariable is automatically stored in **localStorage**, if a value already exist it is automatically loaded. You can have a look at [a more complete example here](https://github.com/WebComponentHelpers/ImperaJS/blob/master/demo/Store.js).
 
 ```js
-// note is a proxy 
-let myProxy = var.value.whatever
-myProxy = 9  // this change the variable and run side-effects
-```
+import {StateVariable} from 'impera-js'
 
-```js
+// Initializzation to an empty list
+var todos = new StateVariable("todos",[]);
+
 // Attach/Detach watchers
+// Target is a custom-element and the callback is a function 
+// that modify its UI (it will work with any object really)
+todos.attachWatcher( target:HTMLElement, callback:Function )
+todos.detachWatcher( target:HTMLElement )
+
+// modifying the state is easy,
+// this will fire the watchers callbacks
+todos.value.push({txt:"first todo", isComplete:false})
+
+// Note that **value** returns a proxy!
+// this will also fire the watchers callbacks
+let myProxy = todos.value[0]
+myProxy.txt = "modified todo" 
+
 ```
+The property **value** of a stateVariable returns a proxy to the content of the stateVariable, whenever it is set (directly or indirectly using Array.push for example) will run the callback for all watchers.
+
 
 ### StateTransitions
+Transitions must be **Pure Functions**, they only compute a final state, they are defined by initial state and input data only, they reproduce always the same result for same inputs.
 
+```js
+
+// Adding a Transition to a StateVariable
+todos.addTransition("addTodo",(text)=>{
+    let todo = {txt : text, isComplete : false}
+    todos.value.push(todo)
+})
+
+
+// State change via transition
+// this will fire the watchers callbacks
+todos.applyTransition("addTodo", "new Todo")
+
+
+// Note that now this will throw, this is to make 
+// sure one can only change state by defined transitions
+todos.value.push(some_todo)
+
+// this protection can be overridden
+todos.allowStandaloneAssign = true
+todos.value.push(some_todo) // now will not throw
+
+```
+The idea here is that once you add a transition to a stateVariable you limit its allowed chage space, the framework makes sure that now you are only allowed to change the stateVariable via transitions. You can of course override this behaviour.
+Note that transition owned by a state variable will bind **this** to the state variable itself, however make sure to use a named function then and NOT an arrow function as in the example.
+
+```js
+import {StateTransition} from 'impera-js'
+
+// Global transitions definition
+var removeTodo = new StateTransition("removeTodo",(index)=>{
+    todos.value.splice(index,1)
+    
+    // any other stateVariables change can go below here
+    // ....
+});
+
+// Dispatch the transition, andcall watchers callbacks.
+// Whatcher can be attached in same way as for stateVariables
+removeTodo.applyTransition( 1 )
+
+```
+A global stateTransition is a global function that is meant to apply simultaneously an overall state change, this can be made of just one variable change or multiple stateVariables changes at the same time, so that the initial and final states are always well defined, it guarantees that UI updates are made at transition completion (final state) only.
 
 ### StateMixin
+The StateMixins are a way to attach custom-element callbacks to a stateVariable or a stateTransition in an easy way. The callbacks get attached and detached automatically when the custom-element is connected/disconnected from the DOM.
 
+```js
+import {statesMixin} from 'impera-js'
+
+// Mixin applied to generic custom-element
+class myTodo extends statesMixin([todos,removeTodo], HTMLElement){
+    constructor(){
+        super()
+        
+        // the element has a read-only prop connected 
+        // to each stateVariable in the list above
+        let myTodos = this.todos[0]
+        // this will throw
+        myTodos.txt = "new todo"
+    }
+    
+    // override callback that fires on "todos" changes
+    on_todos_update(){
+        // do something to update the UI
+    }
+    
+    // override callback that fires on transition "removeTodo"
+    on_removeTodo(){
+        // do something here
+    }
+
+    onclick(){
+        // the element now has a hook to all transition of 
+        // states in the list.
+        this.applyTransition("addTodo", "new todo")
+        this.applyTransition("removeTodo", 1 )
+    }
+}
+
+```
+For any **stateVariables** in the list a read-only property named as the stateVariable will be added to the element. Also an **applyTransition** method to dispatch the added transitions (either of a stateVariable or of a global stateTransition) will be added. Callbacks to react on stateVariable change needs to be overwritten by the user and have a predefiend naming scheme: **on_"stateVarName"\_update**. Callbacks to react to transitions are instead called **on_"stateTransitionName"**, in the latter case also the transition input data are passed.
+
+### Usage with Lit-Element
+
+The usage with Lit-Element is very similar to what shown above, with the exception that 
+each update of any stateVariable or dispatch of Transition will request a render of the element. You can have a look at [a more complete example here](https://github.com/WebComponentHelpers/ImperaJS/blob/master/demo/litWebComponents.js), while a demo can be found [here](https://webcomponenthelpers.github.io/ImperaJS/demo/litDemo.html).
+
+```js
+import {litStatesMixin} from 'impera-js'
+
+class myTodo extends litStatesMixin([todos,removeTodo],LitElement){
+    
+    static get properties() { return { index: Number } }
+    
+    render(){
+        return html`
+            <span @click="${this.toggle}">
+                ${this.todos[this.index].isComplete === "true" ? "Done" : "Pending"}
+            </span>
+            <span class="text">${this.todos[this.index].txt}</span>
+            <a class="tag is-delete is-light" @click="${this.remove}"></a>
+            </div>
+        `;
+    }
+    toggle(){
+        this.applyTransition("toggleTodo",this.index);
+    }
+    remove(){
+        this.applyTransition('removeTodo',this.index)
+    }
+}
+
+customElements.define("my-todo",myTodo);
+
+```
