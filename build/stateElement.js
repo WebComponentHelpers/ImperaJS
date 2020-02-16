@@ -2,7 +2,6 @@ import onChangeProxy from "./onChange.js";
 var _isCallback_locked = false;
 var _under_transition = false;
 const _transitions_callbackMap = new Map();
-// _transitions_callbackMap.clear();  // is this needed??  FIXME
 class BaseState {
     constructor(NAME) {
         this.name = NAME;
@@ -29,12 +28,21 @@ class BaseState {
                 update_callback(input);
         }
     }
+    /**
+     * Attach a callback to be fired when this stateVariable (or Transition) changes (is dispatched).
+     * @param target Element that holds the callback
+     * @param callback the callback function needs to be bound to the element if using **this**
+     */
     attachWatcher(target, callback) {
         if (target === null || target === undefined)
             throw Error("Target is undefined.");
         // add element to the watcher list
         this.callbackMap.set(target, callback);
     }
+    /**
+     * Removes the element from the watcher list
+     * @param target element to be removed
+     */
     detachWatcher(target) {
         if (target === null || target === undefined)
             throw Error("Target is undefined.");
@@ -42,8 +50,21 @@ class BaseState {
         this.callbackMap.delete(target);
     }
 }
+/**
+ * A stateTransition is a global function that is meant to apply simultaneously an overall state change,
+ * this can be made of just one variable change or multiple stateVariables changes at the same time, so that the initial and final
+ * states are always well defined, it guarantees that UI updates are made at transition completion (final state) only.
+ */
 export class StateTransition extends BaseState {
+    /**
+     * User defined transition to be overwritten.
+     * @param input Any meaningfull data.
+     */
     usrDefined_transition(input) { }
+    /**
+     * Fires the user defined transition and calls the callbacks of all watchers.
+     * @param input data to be passed to the user defined transition
+     */
     applyTransition(input) {
         this.lock_callbacks();
         _under_transition = true;
@@ -59,6 +80,14 @@ export class StateTransition extends BaseState {
         this.unlock_callbacks();
     }
 }
+/**
+ * A StateVariable hold the state of the App, its content can be a String, Object, Number and Boolean. Its **DEFAULT**
+ * value is passed at creation time and defines the type of the variable, the type cannot be changed later.
+ * A StateVariable is automatically stored in **localStorage**.
+ * @param  value - Returns a proxy to the content of the stateVariable, whenever it is set (directly or indirectly using Array.push
+ * for example) will run the callback for all watchers.Proxy to the content of stateVariable
+ * @param  allowStandaloneAssign - Enable/Disable assignment outside of a stateTransition (default true)
+ */
 export class StateVariable extends BaseState {
     constructor(NAME, DEFAULT) {
         super(NAME);
@@ -157,6 +186,11 @@ export class StateVariable extends BaseState {
         this._call_watchers();
         this.unlock_callbacks();
     }
+    /**
+     * Add a transition to this stateVariable, after that the variable can only be changed trough defined stateTransition.
+     * @param name Used to identify the transition
+     * @param func Definition of the variable update, **this** is bound to the variable.
+     */
     addTransition(name, func) {
         let t = new StateTransition(name);
         if (typeof (func) === "function") {
@@ -165,6 +199,11 @@ export class StateVariable extends BaseState {
             this.allowStandaloneAssign = false;
         }
     }
+    /**
+     * Fires one of the user defined transition related to this stateVariable.
+     * @param name Identifier of the transition.
+     * @param input Payload to be passed to the transition, if any.
+     */
     applyTransition(name, input) {
         if (this.transitionMap.has(name))
             this.transitionMap.get(name).applyTransition(input);
@@ -172,6 +211,10 @@ export class StateVariable extends BaseState {
             throw Error(`Transition ${name} not found`);
     }
 }
+/**
+ * A Message does not change the state of the app and is not persisted in any way, it used to exchange payloads between custom-elements.
+ * A custom-element can listen for a specific message, retrieve its payload and fire a callback when this happens.
+ */
 export class Message extends BaseState {
     sendMessage(input) {
         this._call_watchers(input);
@@ -241,6 +284,16 @@ let baseMixin = (listOfComponents, baseClass) => class extends baseClass {
         }
     }
 };
+/**
+ * This is a mixin to be applied to a generic web-component. For any **stateVariables** in the list will add to the element a read-only property
+ * named as the stateVariable. It will add an **applyTransition** method to dispatch the added
+ * transition (either of a stateVariable or of a global stateTransition). Callbacks to react on stateVariable change needs to be overwritten by the user
+ * and have a predefiend naming scheme: **on_"stateVarName"_update**. Callbacks to react to transitions are instead called **on_"stateTransitionName"**,
+ * in the latter case also the transition input data are passed. For any **Message** in the list a **gotMessage_"messageName"** callback is added to react
+ * to message exchange, this callback passes as input the message payload.
+ * @param listOfComponents is a list of StateVariables and StateTransition to add to the web-component
+ * @param baseClass The class on which the mixin is applied
+ */
 export let statesMixin = (listOfComponents, baseClass) => class extends baseMixin(listOfComponents, baseClass) {
     connectedCallback() {
         if (super['connectedCallback'] !== undefined) {
@@ -266,13 +319,20 @@ export let statesMixin = (listOfComponents, baseClass) => class extends baseMixi
         }
     }
 };
+/**
+ * This is a mixin to be applied to Lit-Element web-components. For any stateVariables in the list will add a read-only property
+ * to the element named as the stateVariable. It will add an **applyTransition** method to dispatch the added
+ * transition (either of a stateVariable or of a global stateTransition). For each change of a stateVariable or dispatch of
+ * any of the stateTransition a render request is called. For any **Message** in the list it will add a **gotMessage_"messageName"** method to react
+ * to message exchange, this method passes as input the message payload.
+ * @param listOfComponents is a list of StateVariables and StateTransition to add to the web-component
+ * @param baseClass The class on which the mixin is applied
+ */
 export let litStatesMixin = (listOfComponents, baseClass) => class extends baseMixin(listOfComponents, baseClass) {
     connectedCallback() {
         if (super['connectedCallback'] !== undefined) {
             super.connectedCallback();
         }
-        //let run_render_on_connect = false;
-        // watch default state variables
         for (let state_comp of listOfComponents) {
             if (state_comp instanceof Message) {
                 if (this[`gotMessage_${state_comp.name}`])
@@ -284,6 +344,5 @@ export let litStatesMixin = (listOfComponents, baseClass) => class extends baseM
                 state_comp.attachWatcher(this, this.requestUpdate.bind(this));
             }
         }
-        //if(run_render_on_connect) this.render();
     }
 };
