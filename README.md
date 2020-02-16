@@ -21,7 +21,7 @@ citizens. The main features are:
 If you are not familiar with the ACTION->REDUCER->STORE pattern and why is a good idea, have a look at the [Redux Docs](https://redux.js.org/introduction/core-concepts) where it is very well explained.
 
 
-# Demo
+# Demos
 
 [Simple todo App demo](https://webcomponenthelpers.github.io/ImperaJS/demo/litDemo.html) made with **ImperaJs** and **Lit-Element**.
 
@@ -40,13 +40,13 @@ while a transition from one app state to another is implemented by **State-Trans
 State-Variables and Transitions can be hooked to custom-elements, so that on StateVarible change, or on dispatch of a Transition, the custom-element 
 can apply its own UI-related changes.
 
-### Install
+## Install
 
 ```bash
 npm i impera-js
 ```
 
-### StateVariables
+## StateVariables
 A StateVariable hold the state of the App, its content can be a String, Object, Number and Boolean. Its **DEFAULT**  value is passed at creation time and defines the type of the variable, the type cannot be changed later. A StateVariable is automatically stored in **localStorage**, if a value already exist it is automatically loaded. You can have a look at [a more complete example here](https://github.com/WebComponentHelpers/ImperaJS/blob/master/demo/Store.js).
 
 ```js
@@ -74,7 +74,7 @@ myProxy.txt = "modified todo"
 The property **value** of a stateVariable returns a proxy to the content of the stateVariable, whenever it is set (directly or indirectly using Array.push for example) will run the callback for all watchers.
 
 
-### StateTransitions
+## StateTransitions
 Transitions must be **Pure Functions**, they only compute a final state, they are defined by initial state and input data only, they reproduce always the same result for same inputs.
 
 ```js
@@ -121,7 +121,7 @@ removeTodo.applyTransition( 1 )
 ```
 A global stateTransition is a global function that is meant to apply simultaneously an overall state change, this can be made of just one variable change or multiple stateVariables changes at the same time, so that the initial and final states are always well defined, it guarantees that UI updates are made at transition completion (final state) only.
 
-### StateMixin
+## StateMixin
 The StateMixins are a way to attach custom-element callbacks to a stateVariable or a stateTransition in an easy way. The callbacks get attached and detached automatically when the custom-element is connected/disconnected from the DOM.
 
 ```js
@@ -160,7 +160,7 @@ class myTodo extends statesMixin([todos,removeTodo], HTMLElement){
 ```
 For any **stateVariables** in the list a read-only property named as the stateVariable will be added to the element. Also an **applyTransition** method to dispatch the added transitions (either of a stateVariable or of a global stateTransition) will be added. Callbacks to react on stateVariable change needs to be overwritten by the user and have a predefiend naming scheme: **on_"stateVarName"\_update**. Callbacks to react to transitions are instead called **on_"stateTransitionName"**, in the latter case also the transition input data are passed.
 
-### Usage with Lit-Element
+## Usage with Lit-Element
 
 The usage with Lit-Element is very similar to what shown above, with the exception that 
 each update of any stateVariable or dispatch of Transition will request a render of the element. You can have a look at [a more complete example here](https://github.com/WebComponentHelpers/ImperaJS/blob/master/demo/litWebComponents.js), while a demo can be found [here](https://webcomponenthelpers.github.io/ImperaJS/demo/litDemo.html).
