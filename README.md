@@ -20,8 +20,9 @@ citizens. The main features are:
 
 # Demo
 
-Have a look at a [simple todo App demo](https://webcomponenthelpers.github.io/ImperaJS/demo/litDemo.html) made with ImperaJs and Lit-Element.
-While [here](https://webcomponenthelpers.github.io/ImperaJS/demo/) the same demo with Brick-Element.
+[Simple todo App demo](https://webcomponenthelpers.github.io/ImperaJS/demo/litDemo.html) made with **ImperaJs** and **Lit-Element**.
+
+While [here](https://webcomponenthelpers.github.io/ImperaJS/demo/) the same demo made with **Brick-Element** instead.
 
 
 # Getting Started
