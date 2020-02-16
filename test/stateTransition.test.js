@@ -6,6 +6,7 @@ export default function (){
 
     let counter_st = 0;
     let counter_gb = 0;
+    let counter_st_init = 0; 
 
     describe('Transition',()=>{
         
@@ -13,6 +14,11 @@ export default function (){
         let st_t = new StateTransition("test_trow");
         let mess = new Message("pollo");
         let message = "ciao";
+
+        let st_init = new StateTransition("test",(i)=>{
+            if(i) counter_st_init=i;
+            else counter_st_init++;
+        });
 
         
         let test_target = document.createElement("h1");
@@ -102,6 +108,11 @@ export default function (){
 
             chai.assert.Throw(func, "Forbidden multiple-update during an update callback loop");
             chai.assert.Throw(func2, "Target is undefined");
+
+            st_init.applyTransition();
+            chai.assert.equal(counter_st_init, 1, "standalone init ok");
+            st_init.applyTransition(7);
+            chai.assert.equal(counter_st_init, 7, "standalone init ok 2");
 
         });
         it('Detaches',()=>{

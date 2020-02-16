@@ -60,12 +60,19 @@ class BaseState{
 
 }
 
+
+type usrCallback = (input?: any) => void;
+
 /**
  * A stateTransition is a global function that is meant to apply simultaneously an overall state change, 
  * this can be made of just one variable change or multiple stateVariables changes at the same time, so that the initial and final
  * states are always well defined, it guarantees that UI updates are made at transition completion (final state) only.
  */
 export class StateTransition extends BaseState{
+    constructor(NAME:string,func?:usrCallback){
+        super(NAME);
+        if(typeof func === "function") this.usrDefined_transition = func;
+    }
     /**
      * User defined transition to be overwritten.
      * @param input Any meaningfull data.
