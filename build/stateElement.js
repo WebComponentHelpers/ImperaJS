@@ -177,7 +177,7 @@ export class Message extends BaseState {
         this._call_watchers(input);
     }
 }
-export let statesMixin = (listOfComponents, baseClass) => class extends baseClass {
+let baseMixin = (listOfComponents, baseClass) => class extends baseClass {
     constructor() {
         super();
         this._transitionMap = new Map();
@@ -231,8 +231,18 @@ export let statesMixin = (listOfComponents, baseClass) => class extends baseClas
             }
         }
     }
+    disconnectedCallback() {
+        if (super['disconnectedCallback'] !== undefined) {
+            super.disconnectedCallback();
+        }
+        for (let state_comp of listOfComponents) {
+            //@ts-ignore
+            state_comp.detachWatcher(this);
+        }
+    }
+};
+export let statesMixin = (listOfComponents, baseClass) => class extends baseMixin(listOfComponents, baseClass) {
     connectedCallback() {
-        //console.log('Im connected, running connected callback');
         if (super['connectedCallback'] !== undefined) {
             super.connectedCallback();
         }
@@ -255,13 +265,25 @@ export let statesMixin = (listOfComponents, baseClass) => class extends baseClas
             }
         }
     }
-    disconnectedCallback() {
-        if (super['disconnectedCallback'] !== undefined) {
-            super.disconnectedCallback();
+};
+export let litStatesMixin = (listOfComponents, baseClass) => class extends baseMixin(listOfComponents, baseClass) {
+    connectedCallback() {
+        if (super['connectedCallback'] !== undefined) {
+            super.connectedCallback();
         }
+        //let run_render_on_connect = false;
+        // watch default state variables
         for (let state_comp of listOfComponents) {
-            //@ts-ignore
-            state_comp.detachWatcher(this);
+            if (state_comp instanceof Message) {
+                if (this[`gotMessage_${state_comp.name}`])
+                    //@ts-ignore
+                    state_comp.attachWatcher(this, this[`gotMessage_${state_comp.name}`].bind(this));
+            }
+            else {
+                //@ts-ignore
+                state_comp.attachWatcher(this, this.requestUpdate.bind(this));
+            }
         }
+        //if(run_render_on_connect) this.render();
     }
 };

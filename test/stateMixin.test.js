@@ -1,4 +1,5 @@
-import {statesMixin, StateVariable, StateTransition, Message} from "../build/stateElement.js"
+import {statesMixin, StateVariable, StateTransition, Message, litStatesMixin} from "../build/stateElement.js"
+import {LitElement, html} from 'https://unpkg.com/lit-element?module';
 
 export default function(){
     localStorage.clear();
@@ -181,6 +182,40 @@ export default function(){
             chai.assert.equal(message2,"", "message");
 
         });
+        describe('LitElement Mixin',()=>{
+            var lista = [sv_n];
+            it('Does a render update',async function(){
+
+                sv_n.value = 1
+
+                class MyFoo extends litStatesMixin(lista,LitElement) {    
+                    render() {
+                      return html`
+                      <div id="num"> This is Lit element ${this.num}</div>
+                      `;
+                    }
+                  }
+                customElements.define('my-foo', MyFoo);
+                let lit = document.createElement('my-foo');
+                document.body.appendChild(lit);
+                
+                let update = await lit.updateComplete
+                let div0 = lit.shadowRoot.querySelector("#num")
+                chai.assert.equal(div0.innerText, "This is Lit element 1","lit element gets initialized correctly")
+                sv_n.value = 6
+                update = await lit.updateComplete
+                div0 = lit.shadowRoot.querySelector("#num")
+                chai.assert.equal(div0.innerText, "This is Lit element 6","lit element gets modified correctly")
+                sv_n.applyTransition("SubTransition")
+                update = await lit.updateComplete
+                div0 = lit.shadowRoot.querySelector("#num")
+                chai.assert.equal(div0.innerText, "This is Lit element 78","lit element respond to transitions")
+                
+                document.body.removeChild(lit);
+            });
+
+        });
+
         describe('Performance',()=>{
             it('Update of a 1000 element takes < 200mus',()=>{
                 let n_cycles = 1000;
