@@ -148,7 +148,7 @@ import {statesMixin} from 'impera-js'
  *  USAGE:
  * @param StatesList Array of StateVariable or StateTransition
  * @param baseClass  Class to inherith from
- * @return A mixed in class
+ * @return A mixed-in class
  */
 statesMixin( StatesList, baseClass ) 
 
