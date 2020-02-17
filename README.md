@@ -144,7 +144,16 @@ The StateMixins are a way to attach custom-element callbacks to a StateVariable 
 ```js
 import {statesMixin} from 'impera-js'
 
-// Mixin applied to generic custom-element
+/**
+ *  USAGE:
+ * @param StatesList Array of StateVariable or StateTransition
+ * @param baseClass  Class to inherith from
+ * @return A mixed in class
+ */
+statesMixin( StatesList, baseClass ) 
+
+
+// Mixin applied to generic a custom-element
 class myTodo extends statesMixin([todos,removeTodo], HTMLElement){
     constructor(){
         super()
