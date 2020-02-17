@@ -1,21 +1,21 @@
 # ImperaJS
 
-Tiny, Proxy based App State Managment for custom-elements.
+Tiny, Proxy based App State Management for custom-elements.
 
 # Main Features
 
 I know what you are thinking... Yet another framework, hurray!
 
-This library is inspired to State Managment frameworks that we all know (Redux, MobX, Effector). It tries to put togheter the flow, the 
-"store" breakup philosophy of Effector and the sintax simplicity of MobX, while being minimalistic and having costom-elemnts in mind as its first
+This library is inspired to State Management frameworks that we all know (Redux, MobX, Effector). It tries to put together the flow, the 
+"store" breakup philosophy of Effector and the syntax simplicity of MobX, while being minimalistic and having custom-elements in mind as its first
 citizens. The main features are:
 
-- It's tiny, only about 5 kB minified (and 1.9 kB gzipped).
+- It's tiny, only about 5 kB minified (and 1.9 kB g-zipped).
 - It uses Proxy under the hood for a little :sparkler:
 - It is meant for custom-elements.
 - Supports [lit-element](https://www.npmjs.com/package/lit-element).
 - Works with Vanilla-Js or frameworks like [Brick](https://www.npmjs.com/package/brick-element).
-- Implements the usual flow: **ACTION**->**REDUCER**->**STORE** but with A LOOOOT less painfull sintax.
+- Implements the usual flow: **ACTION**->**REDUCER**->**STORE** but with A LOOOOT less painful syntax.
 - You can break the STORE in parts as small as you like.
 - Works with async out of the box.
 - Saves the state to ``localStorage`` automatically.
@@ -25,7 +25,7 @@ If you are not familiar with the ACTION->REDUCER->STORE pattern and why is a goo
 
 # Demos
 
-[Simple todo App demo](https://webcomponenthelpers.github.io/ImperaJS/demo/litDemo.html) made with **ImperaJs** and **Lit-Element**.
+[Simple to-do App demo](https://webcomponenthelpers.github.io/ImperaJS/demo/litDemo.html) made with **ImperaJs** and **Lit-Element**.
 
 While [here](https://webcomponenthelpers.github.io/ImperaJS/demo/) the same demo made with **Brick-Element** instead.
 
@@ -42,14 +42,14 @@ While [here](https://webcomponenthelpers.github.io/ImperaJS/demo/) the same demo
 
 # Getting Started
 
-Of course... new framework, new sets of names for the same things... So let's first get the namings right:
+Of course... new framework, new sets of names for the same things... So let's first get the naming right:
 
-- Here the clostest thing to the Redux **STORE** we call it **StateVariable**
+- Here the closest thing to the Redux **STORE** we call it **StateVariable**
 - The equivalent of a Redux **ACTION + REDUCER** we call it **StateTransition**
 
 So basically the state of your App is kept by **State-Variables** (which do a little bit more than just keeping the state, but we'll see),
 while a transition from one app state to another is implemented by **State-Transitions**, hope it makes sense so far... 
-State-Variables and Transitions can be hooked to custom-elements, so that on StateVarible change, or on dispatch of a Transition, the custom-element 
+State-Variables and Transitions can be hooked to custom-elements, so that on StateVariable change, or on dispatch of a Transition, the custom-element 
 can apply its own UI-related changes.
 
 ## Install
@@ -64,7 +64,7 @@ A StateVariable hold the state of the App, its content can be a String, Object, 
 ```js
 import {StateVariable} from 'impera-js'
 
-// Initializzation to an empty list
+// Initialization to an empty list
 var todos = new StateVariable("todos",[]);
 
 // Attach/Detach watchers
@@ -83,12 +83,12 @@ let myProxy = todos.value[0]
 myProxy.txt = "modified todo" 
 
 ```
-The property **value** of a stateVariable returns a proxy to the content of the ``stateVariable``, whenever it is set (directly or indirectly using Array.push for example) will run the callback for all watchers.
+The property **value** of a StateVariable returns a proxy to the content of the ``StateVariable``, whenever it is set (directly or indirectly using Array.push for example) will run the callback for all watchers.
 
 
 ## Local State Transitions
 Transitions must be **Pure Functions**, they only compute a final state, they are defined by initial state and input data only, they reproduce always the same result for same inputs.
-Here below we are talking about ``local`` state transition, i.e. related to a single ``stateVariable``, but technically there is very little difference 
+Here below we are talking about ``local`` state transition, i.e. related to a single ``StateVariable``, but technically there is very little difference 
 with the [global](#global-state-transition) ones.
 
 ```js
@@ -114,7 +114,7 @@ todos.allowStandaloneAssign = true
 todos.value.push(some_todo) // now will not throw
 
 ```
-The idea here is that once you add a transition to a stateVariable you limit its allowed chage space, the framework makes sure that now you are only allowed to change the stateVariable via transitions. You can of course override this behaviour with the ``allowStandaloneAssign`` property.
+The idea here is that once you add a transition to a StateVariable you limit its allowed change space, the framework makes sure that now you are only allowed to change the StateVariable via transitions. You can of course override this behavior with the ``allowStandaloneAssign`` property.
 Note that transition owned by a state variable will bind **this** to the state variable itself, however make sure to use a named function then and NOT an arrow function as in the example.
 
 ## Global State Transition
@@ -126,20 +126,20 @@ import {StateTransition} from 'impera-js'
 var removeTodo = new StateTransition("removeTodo",(index)=>{
     todos.value.splice(index,1)
     
-    // any other stateVariables change can go below here
+    // any other StateVariable change can go below here
     // ....
 });
 
-// Dispatch the transition, andcall watchers callbacks.
-// Whatcher can be attached in same way as for stateVariables
+// Dispatch the transition, and call watchers callbacks.
+// Watcher can be attached in same way as for StateVariable
 removeTodo.applyTransition( 1 )
 
 ```
-A global stateTransition is a global function that is meant to apply simultaneously an overall state change, this can be made of just one variable change or multiple stateVariables changes at the same time, so that the initial and final states are always well defined, it guarantees that UI updates are made at transition completion (final state) only.
+A global StateTransition is a global function that is meant to apply simultaneously an overall state change, this can be made of just one variable change or multiple StateVariable changes at the same time, so that the initial and final states are always well defined, it guarantees that UI updates are made at transition completion (final state) only.
 
 
 ## State Mixins
-The StateMixins are a way to attach custom-element callbacks to a stateVariable or a stateTransition in an easy way. The callbacks get attached and detached automatically when the custom-element is connected/disconnected from the DOM.
+The StateMixins are a way to attach custom-element callbacks to a StateVariable or a StateTransition in an easy way. The callbacks get attached and detached automatically when the custom-element is connected/disconnected from the DOM.
 
 ```js
 import {statesMixin} from 'impera-js'
@@ -150,7 +150,7 @@ class myTodo extends statesMixin([todos,removeTodo], HTMLElement){
         super()
         
         // the element has a read-only prop connected 
-        // to each stateVariable in the list above
+        // to each StateVariable in the list above
         let myTodos = this.todos[0]
         // This property is safe to use, you cannot 
         // modify the state accidentally.
@@ -176,12 +176,12 @@ class myTodo extends statesMixin([todos,removeTodo], HTMLElement){
 }
 
 ```
-For any **stateVariables** in the list a read-only property named as the stateVariable will be added to the element. Also an **applyTransition** method to dispatch the added transitions (either of a stateVariable or of a global stateTransition) will be added. Callbacks to react on stateVariable change needs to be overwritten by the user and have a predefiend naming scheme: **on_"stateVarName"\_update**. Callbacks to react to transitions are instead called **on_"stateTransitionName"**, in the latter case also the transition input data are passed.
+For any **StateVariable** in the list a read-only property named as the StateVariable will be added to the element. Also an **applyTransition** method to dispatch the added transitions (either of a StateVariable or of a global StateTransition) will be added. Callbacks to react on StateVariable change needs to be overwritten by the user and have a predefined naming scheme: **on_"stateVarName"\_update**. Callbacks to react to transitions are instead called **on_"stateTransitionName"**, in the latter case also the transition input data are passed.
 
 ## Usage with Lit-Element
 
 The usage with Lit-Element is very similar to what shown above, with the exception that 
-each update of any stateVariable or dispatch of Transition will request a render of the element. You can have a look at [a more complete example here](https://github.com/WebComponentHelpers/ImperaJS/blob/master/demo/litWebComponents.js), while a demo can be found [here](https://webcomponenthelpers.github.io/ImperaJS/demo/litDemo.html).
+each update of any StateVariable or dispatch of Transition will request a render of the element. You can have a look at [a more complete example here](https://github.com/WebComponentHelpers/ImperaJS/blob/master/demo/litWebComponents.js), while a demo can be found [here](https://webcomponenthelpers.github.io/ImperaJS/demo/litDemo.html).
 
 ```js
 import {litStatesMixin} from 'impera-js'
