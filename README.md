@@ -195,7 +195,7 @@ class myTodo extends litStatesMixin([todos,removeTodo],LitElement){
             <span @click="${this.toggle}">
                 ${this.todos[this.index].isComplete === "true" ? "Done" : "Pending"}
             </span>
-            <span class="text">${this.todos[this.index].txt}</span>
+            <span class="text">${ this.todos[this.index].txt }</span>
             <a class="tag is-delete is-light" @click="${this.remove}"></a>
             </div>
         `;
@@ -211,3 +211,5 @@ class myTodo extends litStatesMixin([todos,removeTodo],LitElement){
 customElements.define("my-todo",myTodo);
 
 ```
+Note the ``this.todos[this.index].isComplete``, a read only property with the name of the StateVariable has been added to the element, this is again a 
+safe property to use: it cannot change the state of the app, is just a getter. As above, also the transitions are added to the element.
