@@ -211,5 +211,5 @@ class myTodo extends litStatesMixin([todos,removeTodo],LitElement){
 customElements.define("my-todo",myTodo);
 
 ```
-Note the ``this.todos[...]``, a read only property with the name of the StateVariable has been added to the element, this is again a 
+Note the **this.todos[...]**, a read only property with the name of the StateVariable has been added to the element, this is again a 
 safe property to use: it cannot change the state of the app, it's just a getter. As above, also the transitions are added to the element.
