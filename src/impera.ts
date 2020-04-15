@@ -86,19 +86,25 @@ export class StateTransition extends BaseState{
     applyTransition( input?:any ) :void {
 
         this.lock_callbacks();
-
-        _under_transition = true;
-        this.usrDefined_transition(input);
-        _under_transition = false;
-
-        // loop over watchers callbacks
-        this._call_watchers(input);
-
-        // loop over automatically added callbacks to _transitions_callbackMap
-        for (let upd_callback of _transitions_callbackMap.values()){
-            upd_callback();
+        try
+        {
+            _under_transition = true;
+            this.usrDefined_transition(input);
+            _under_transition = false;
+    
+            // loop over watchers callbacks of the StateTransition
+            this._call_watchers(input);
+    
+            // loop over automatically added StateVariable callbacks to _transitions_callbackMap
+            for (let upd_callback of _transitions_callbackMap.values()){
+                upd_callback();
+            }            
         }
-
+        catch(e){
+            _transitions_callbackMap.clear();
+            this.unlock_callbacks();
+            throw new Error(e.message);
+        }
         _transitions_callbackMap.clear();
         this.unlock_callbacks();
     }
@@ -219,11 +225,17 @@ export class StateVariable extends BaseState{
     updateWatchers() :void {
 
         this.lock_callbacks();
-               
-        this.UPDATE_DATA();
-    
-        // loop over watchers callbacks
-        this._call_watchers();
+        try
+        {               
+            this.UPDATE_DATA();
+            // loop over watchers callbacks
+            this._call_watchers();
+        }
+        catch(e){
+            // make sure to unlock in case of error
+            this.unlock_callbacks();
+            throw new Error(e.message);
+        }
 
         this.unlock_callbacks();
     }

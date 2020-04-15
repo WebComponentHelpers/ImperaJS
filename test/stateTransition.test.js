@@ -1,4 +1,4 @@
-import {StateTransition, StateVariable, Message} from '../build/stateElement.js';
+import {StateTransition, StateVariable, Message} from '../build/impera.js';
 
 export default function (){
     // this is a must ;)
@@ -138,6 +138,17 @@ export default function (){
             chai.assert.equal(state_var.value, "kkk", "Not Allowed State Var can be modified in state transition");
 
         });
+        it('Unlock Callbacks in case of internal error', ()=>{
+            let st_unl = new StateTransition("dontTrow");
+            let test_target_unl = document.createElement("div");
+            let test_target2_unl = document.createElement("div");
+            st_unl.attachWatcher(test_target_unl, function (){ throw new Error("throwing");});
+            st_unl.attachWatcher(test_target2_unl, ()=>{ });
+            chai.assert.throw(()=>{ st_unl.applyTransition() },"throwing");
+            st_unl.detachWatcher(test_target_unl);
+            // before the fix this was throwing because callback were not unlocked
+            chai.assert.doesNotThrow(()=>{st_unl.applyTransition();});
+        })
 
         it('Async ',()=>{
 

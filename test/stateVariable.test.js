@@ -1,4 +1,4 @@
-import {StateVariable} from '../build/stateElement.js';
+import {StateVariable} from '../build/impera.js';
 
 export default function (){
     // this is a must ;)
@@ -177,6 +177,18 @@ export default function (){
 
             });
 
+            it('Unlock Callbacks in case of internal error', ()=>{
+                let st_unl = new StateVariable("dontTrowVar",78);
+                let test_target_unl = document.createElement("div");
+                let test_target2_unl = document.createElement("div");
+                st_unl.attachWatcher(test_target_unl, function (){ throw new Error("throwing");});
+                st_unl.attachWatcher(test_target2_unl, ()=>{ });
+                chai.assert.throw(()=>{ st_unl.value = 89; },"throwing");
+                st_unl.detachWatcher(test_target_unl);
+                // before the fix this was throwing because callback were not unlocked
+                chai.assert.doesNotThrow(()=>{st_unl.value = 67;});
+            })
+    
         });
 
         describe("Self transitions",()=>{

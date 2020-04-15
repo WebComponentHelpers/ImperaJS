@@ -1,4 +1,4 @@
-import {statesMixin, StateVariable, StateTransition, Message, litStatesMixin} from "../build/stateElement.js"
+import {statesMixin, StateVariable, StateTransition, Message, litStatesMixin} from "../build/impera.js"
 import {LitElement, html} from 'https://unpkg.com/lit-element?module';
 
 export default function(){
