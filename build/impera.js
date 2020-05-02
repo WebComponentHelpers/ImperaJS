@@ -342,7 +342,9 @@ export var statesMixin = (listOfComponents, baseClass) => class extends baseMixi
  * This is a mixin to be applied to Lit-Element web-components. For any stateVariables in the list will add a read-only property
  * to the element named as the stateVariable. It will add an **applyTransition** method to dispatch the added
  * transition (either of a stateVariable or of a global stateTransition). For each change of a stateVariable or dispatch of
- * any of the stateTransition a render request is called. For any **Message** in the list it will add a **gotMessage_"messageName"** method to react
+ * any of the stateTransition a render request is called. A hook function is added for each stateVariable with name **'on_VarName_update'**,
+ * if this function is defined by the user then it will be run before the render.
+ * For any **Message** in the list it will add a **gotMessage_"messageName"** method to react
  * to message exchange, this method passes as input the message payload.
  * @param listOfComponents is a list of StateVariables and StateTransition to add to the web-component
  * @param baseClass The class on which the mixin is applied
@@ -360,8 +362,15 @@ export let litStatesMixin = (listOfComponents, baseClass) => class extends baseM
             }
             else {
                 //@ts-ignore
-                state_comp.attachWatcher(this, this.requestUpdate.bind(this));
+                state_comp.attachWatcher(this, this._stateRequestUpdate(state_comp.name).bind(this));
             }
         }
+    }
+    _stateRequestUpdate(varName) {
+        return function () {
+            if (this[`on_${varName}_update`])
+                this[`on_${varName}_update`]();
+            this.requestUpdate();
+        };
     }
 };

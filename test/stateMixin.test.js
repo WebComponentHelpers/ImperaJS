@@ -187,12 +187,16 @@ export default function(){
             it('Does a render update',async function(){
 
                 sv_n.value = 1
+                let lit_counter = 0;
 
                 class MyFoo extends litStatesMixin(lista,LitElement) {    
                     render() {
                       return html`
                       <div id="num"> This is Lit element ${this.num}</div>
                       `;
+                    }
+                    on_num_update(){
+                        lit_counter++;
                     }
                   }
                 customElements.define('my-foo', MyFoo);
@@ -202,14 +206,17 @@ export default function(){
                 let update = await lit.updateComplete
                 let div0 = lit.shadowRoot.querySelector("#num")
                 chai.assert.equal(div0.innerText, "This is Lit element 1","lit element gets initialized correctly")
+                //chai.assert.equal(lit_counter, 1,"counter change");
                 sv_n.value = 6
                 update = await lit.updateComplete
                 div0 = lit.shadowRoot.querySelector("#num")
                 chai.assert.equal(div0.innerText, "This is Lit element 6","lit element gets modified correctly")
+                chai.assert.equal(lit_counter, 1,"counter change ");
                 sv_n.applyTransition("SubTransition")
                 update = await lit.updateComplete
                 div0 = lit.shadowRoot.querySelector("#num")
                 chai.assert.equal(div0.innerText, "This is Lit element 78","lit element respond to transitions")
+                chai.assert.equal(lit_counter, 2,"counter does not change");
                 
                 document.body.removeChild(lit);
             });

@@ -215,6 +215,11 @@ class myTodo extends litStatesMixin([todos,removeTodo],LitElement){
     remove(){
         this.applyTransition('removeTodo',this.index)
     }
+    on_todos_update(){
+        // run here anything that has to be done before the render,
+        // it can be used also for property/attribute reflection to state variables.
+        console.log("updating todos");
+    }
 }
 
 customElements.define("my-todo",myTodo);
@@ -222,3 +227,5 @@ customElements.define("my-todo",myTodo);
 ```
 Note the **this.todos[...]**, a read only property with the name of the StateVariable has been added to the element, this is again a 
 safe property to use: it cannot change the state of the app, it's just a getter. As above, also the transitions are added to the element.
+A hook callback function is added for each StateVariable and can be overriden by the user, it has a predefined naming scheme: **on_"stateVarName"\_update**,
+this hooks runs every time the variable is updated and runs before the "render()", one interesting use case for this is property/attribute reflection to state variables.
