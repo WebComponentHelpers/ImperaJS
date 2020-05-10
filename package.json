@@ -1,6 +1,6 @@
 {
   "name": "impera-js",
-  "version": "0.7.7",
+  "version": "0.7.8",
   "sideEffects": false,
   "description": "Tiny, Proxy based App State Managment for custom-elements",
   "main": "build/impera.js",
