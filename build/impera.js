@@ -239,70 +239,76 @@ export class Message extends BaseState {
         this._call_watchers(input);
     }
 }
-let baseMixin = (listOfComponents, baseClass) => class extends baseClass {
-    constructor() {
-        super();
-        this._transitionMap = new Map();
-        this._messageMap = new Map();
-        this._extractTransitions();
-        this._addGetterSetters();
-    }
-    _extractTransitions() {
-        for (let itr = 0; itr < listOfComponents.length; itr++) {
-            let comp = listOfComponents[itr];
-            if (comp instanceof StateVariable) {
-                for (let t of comp.transitionMap.values()) {
-                    listOfComponents.push(t);
+function baseMixin(listOfComponents, baseClass) {
+    return class extends baseClass {
+        constructor(...args) {
+            super(...args);
+            this._transitionMap = new Map();
+            this._messageMap = new Map();
+            this._extractTransitions();
+            this._addGetterSetters();
+        }
+        _extractTransitions() {
+            for (let itr = 0; itr < listOfComponents.length; itr++) {
+                let comp = listOfComponents[itr];
+                if (comp instanceof StateVariable) {
+                    for (let t of comp.transitionMap.values()) {
+                        listOfComponents.push(t);
+                    }
                 }
             }
         }
-    }
-    applyTransition(name, input) {
-        if (this._transitionMap.has(name))
-            this._transitionMap.get(name)(input);
-        else
-            throw Error(`Transition ${name} not found`);
-    }
-    sendMessageOnChannel(name, payload) {
-        if (this._messageMap.has(name))
-            this._messageMap.get(name)(payload);
-        else
-            throw Error(`Message channel ${name} not found`);
-    }
-    _addGetterSetters() {
-        for (let state_comp of listOfComponents) {
-            if (state_comp instanceof StateVariable) {
-                // adding proxy
-                if (state_comp.type === "object")
-                    this[`_${state_comp.name}Proxy`] = onChangeProxy(state_comp._val, () => { throw `${state_comp.name} cannot be assigned from a custom element`; });
-                Object.defineProperty(this, state_comp.name, {
-                    set: (val) => {
-                        throw `${state_comp.name} cannot be assigned from a custom element`;
-                    },
-                    get: () => { return (state_comp.type === "object") ? this[`_${state_comp.name}Proxy`] : state_comp._val; }
-                });
-            }
-            else if (state_comp instanceof Message) {
-                this._messageMap.set(state_comp.name, state_comp.sendMessage.bind(state_comp));
-            }
-            else if (state_comp instanceof StateTransition) {
-                this._transitionMap.set(state_comp.name, state_comp.applyTransition.bind(state_comp));
-            }
-            else {
-                throw TypeError("Accept only StateVariable, StateTransition or Message.");
+        applyTransition(name, input) {
+            if (this._transitionMap.has(name))
+                this._transitionMap.get(name)(input);
+            else
+                throw Error(`Transition ${name} not found`);
+        }
+        sendMessageOnChannel(name, payload) {
+            if (this._messageMap.has(name))
+                this._messageMap.get(name)(payload);
+            else
+                throw Error(`Message channel ${name} not found`);
+        }
+        _addGetterSetters() {
+            for (let state_comp of listOfComponents) {
+                if (state_comp instanceof StateVariable) {
+                    // adding proxy
+                    if (state_comp.type === "object")
+                        //@ts-ignore
+                        this[`_${state_comp.name}Proxy`] = onChangeProxy(state_comp._val, () => { throw `${state_comp.name} cannot be assigned from a custom element`; });
+                    Object.defineProperty(this, state_comp.name, {
+                        set: (val) => {
+                            throw `${state_comp.name} cannot be assigned from a custom element`;
+                        },
+                        //@ts-ignore
+                        get: () => { return (state_comp.type === "object") ? this[`_${state_comp.name}Proxy`] : state_comp._val; }
+                    });
+                }
+                else if (state_comp instanceof Message) {
+                    this._messageMap.set(state_comp.name, state_comp.sendMessage.bind(state_comp));
+                }
+                else if (state_comp instanceof StateTransition) {
+                    this._transitionMap.set(state_comp.name, state_comp.applyTransition.bind(state_comp));
+                }
+                else {
+                    throw TypeError("Accept only StateVariable, StateTransition or Message.");
+                }
             }
         }
-    }
-    disconnectedCallback() {
-        if (super['disconnectedCallback'] !== undefined) {
-            super.disconnectedCallback();
-        }
-        for (let state_comp of listOfComponents) {
+        disconnectedCallback() {
             //@ts-ignore
-            state_comp.detachWatcher(this);
+            if (super['disconnectedCallback'] !== undefined) {
+                //@ts-ignore
+                super.disconnectedCallback();
+            }
+            for (let state_comp of listOfComponents) {
+                //@ts-ignore
+                state_comp.detachWatcher(this);
+            }
         }
-    }
-};
+    };
+}
 /**
  * This is a mixin to be applied to a generic web-component. For any **stateVariables** in the list will add to the element a read-only property
  * named as the stateVariable. It will add an **applyTransition** method to dispatch the added
@@ -313,31 +319,39 @@ let baseMixin = (listOfComponents, baseClass) => class extends baseClass {
  * @param listOfComponents is a list of StateVariables and StateTransition to add to the web-component
  * @param baseClass The class on which the mixin is applied
  */
-export var statesMixin = (listOfComponents, baseClass) => class extends baseMixin(listOfComponents, baseClass) {
-    connectedCallback() {
-        if (super['connectedCallback'] !== undefined) {
-            super.connectedCallback();
-        }
-        // watch default state variables
-        for (let state_comp of listOfComponents) {
-            if (state_comp instanceof Message) {
-                if (this[`gotMessage_${state_comp.name}`])
-                    //@ts-ignore
-                    state_comp.attachWatcher(this, this[`gotMessage_${state_comp.name}`].bind(this));
-            }
-            else if (state_comp instanceof StateTransition) {
-                if (this[`on_${state_comp.name}`])
-                    //@ts-ignore
-                    state_comp.attachWatcher(this, this[`on_${state_comp.name}`].bind(this));
-            }
-            else if (this[`on_${state_comp.name}_update`]) {
+export function statesMixin(listOfComponents, baseClass) {
+    return class extends baseMixin(listOfComponents, baseClass) {
+        connectedCallback() {
+            //@ts-ignore
+            if (super['connectedCallback'] !== undefined) {
                 //@ts-ignore
-                state_comp.attachWatcher(this, this[`on_${state_comp.name}_update`].bind(this));
-                this[`on_${state_comp.name}_update`]();
+                super.connectedCallback();
+            }
+            // watch default state variables
+            for (let state_comp of listOfComponents) {
+                if (state_comp instanceof Message) {
+                    //@ts-ignore
+                    if (this[`gotMessage_${state_comp.name}`])
+                        //@ts-ignore
+                        state_comp.attachWatcher(this, this[`gotMessage_${state_comp.name}`].bind(this));
+                }
+                else if (state_comp instanceof StateTransition) {
+                    //@ts-ignore
+                    if (this[`on_${state_comp.name}`])
+                        //@ts-ignore
+                        state_comp.attachWatcher(this, this[`on_${state_comp.name}`].bind(this));
+                }
+                //@ts-ignore
+                else if (this[`on_${state_comp.name}_update`]) {
+                    //@ts-ignore
+                    state_comp.attachWatcher(this, this[`on_${state_comp.name}_update`].bind(this));
+                    //@ts-ignore
+                    this[`on_${state_comp.name}_update`]();
+                }
             }
         }
-    }
-};
+    };
+}
 /**
  * This is a mixin to be applied to Lit-Element web-components. For any stateVariables in the list will add a read-only property
  * to the element named as the stateVariable. It will add an **applyTransition** method to dispatch the added
@@ -349,28 +363,31 @@ export var statesMixin = (listOfComponents, baseClass) => class extends baseMixi
  * @param listOfComponents is a list of StateVariables and StateTransition to add to the web-component
  * @param baseClass The class on which the mixin is applied
  */
-export let litStatesMixin = (listOfComponents, baseClass) => class extends baseMixin(listOfComponents, baseClass) {
-    connectedCallback() {
-        if (super['connectedCallback'] !== undefined) {
-            super.connectedCallback();
-        }
-        for (let state_comp of listOfComponents) {
-            if (state_comp instanceof Message) {
-                if (this[`gotMessage_${state_comp.name}`])
+export function litStatesMixin(listOfComponents, baseClass) {
+    return class extends baseMixin(listOfComponents, baseClass) {
+        connectedCallback() {
+            if (super['connectedCallback'] !== undefined) {
+                super.connectedCallback();
+            }
+            for (let state_comp of listOfComponents) {
+                if (state_comp instanceof Message) {
                     //@ts-ignore
-                    state_comp.attachWatcher(this, this[`gotMessage_${state_comp.name}`].bind(this));
-            }
-            else {
-                //@ts-ignore
-                state_comp.attachWatcher(this, this._stateRequestUpdate(state_comp.name).bind(this));
+                    if (this[`gotMessage_${state_comp.name}`])
+                        //@ts-ignore
+                        state_comp.attachWatcher(this, this[`gotMessage_${state_comp.name}`].bind(this));
+                }
+                else {
+                    //@ts-ignore
+                    state_comp.attachWatcher(this, this._stateRequestUpdate(state_comp.name).bind(this));
+                }
             }
         }
-    }
-    _stateRequestUpdate(varName) {
-        return function () {
-            if (this[`on_${varName}_update`])
-                this[`on_${varName}_update`]();
-            this.requestUpdate();
-        };
-    }
-};
+        _stateRequestUpdate(varName) {
+            return function () {
+                if (this[`on_${varName}_update`])
+                    this[`on_${varName}_update`]();
+                this.requestUpdate();
+            };
+        }
+    };
+}

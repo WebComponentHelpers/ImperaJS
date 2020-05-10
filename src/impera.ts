@@ -1,4 +1,5 @@
 import onChangeProxy from "./onChange.js"
+import {LitElement} from "lit-element"
 
 
 var _isCallback_locked = false;
@@ -278,13 +279,21 @@ export class Message extends BaseState{
     }
 }
 
+type Constructor<T = {}> = new (...args: any[]) => T;
 
-let baseMixin = (listOfComponents:Array<StateVariable|StateTransition|Message>, baseClass:any) => class extends baseClass {
+interface htmlEL {
+    new():HTMLElement
+}
+interface litEl{
+    new():LitElement
+}
+function baseMixin<TBase extends Constructor>(listOfComponents:Array<StateVariable|StateTransition|Message>, baseClass:TBase) {
+    return  class extends baseClass {
     _transitionMap : Map<String,any>
     _messageMap :Map<String,any>
 
-    constructor(){
-        super()
+    constructor(...args: any[]){
+        super(...args)
         this._transitionMap = new Map()
         this._messageMap = new Map()
         this._extractTransitions()
@@ -320,12 +329,14 @@ let baseMixin = (listOfComponents:Array<StateVariable|StateTransition|Message>, 
           if (state_comp instanceof StateVariable){
                 // adding proxy
                 if (state_comp.type === "object")
+                    //@ts-ignore
                    this[`_${state_comp.name}Proxy`] = onChangeProxy(state_comp._val, ()=>{throw `${state_comp.name} cannot be assigned from a custom element`});
 
                 Object.defineProperty(this, state_comp.name, {
                     set: (val: any) => {
                         throw `${state_comp.name} cannot be assigned from a custom element`;
                     },
+                    //@ts-ignore
                     get: () => { return ((<StateVariable>state_comp).type === "object") ? this[`_${state_comp.name}Proxy`] : (<StateVariable>state_comp)._val; }
                 });
           }
@@ -344,7 +355,9 @@ let baseMixin = (listOfComponents:Array<StateVariable|StateTransition|Message>, 
         
     
     disconnectedCallback(){
+        //@ts-ignore
         if(super['disconnectedCallback'] !== undefined) {
+            //@ts-ignore
             super.disconnectedCallback();
         }
 
@@ -355,6 +368,7 @@ let baseMixin = (listOfComponents:Array<StateVariable|StateTransition|Message>, 
 
     }
     
+}
 }
 
 /**
@@ -367,34 +381,41 @@ let baseMixin = (listOfComponents:Array<StateVariable|StateTransition|Message>, 
  * @param listOfComponents is a list of StateVariables and StateTransition to add to the web-component
  * @param baseClass The class on which the mixin is applied
  */
-export var statesMixin = (listOfComponents:Array<StateVariable|StateTransition|Message>, baseClass:any) => class extends baseMixin(listOfComponents, baseClass) {
+export function statesMixin (listOfComponents:Array<StateVariable|StateTransition|Message>, baseClass:htmlEL) {
+    return  class extends baseMixin(listOfComponents, baseClass) {
     
     connectedCallback(){
+        //@ts-ignore
         if(super['connectedCallback'] !== undefined) {
+            //@ts-ignore
             super.connectedCallback();
         }
         // watch default state variables
         for (let state_comp of listOfComponents) {
             
             if(state_comp instanceof Message){
+                //@ts-ignore
                 if(this[`gotMessage_${state_comp.name}`])
                     //@ts-ignore
                     state_comp.attachWatcher(this, this[`gotMessage_${state_comp.name}`].bind(this));
             }
             else if(state_comp instanceof StateTransition) {
+                //@ts-ignore
                 if(this[`on_${state_comp.name}`]) 
                     //@ts-ignore
                     state_comp.attachWatcher(this, this[`on_${state_comp.name}`].bind(this));
             }
+            //@ts-ignore
             else if(this[`on_${state_comp.name}_update`]) {
                 //@ts-ignore
                 state_comp.attachWatcher(this, this[`on_${state_comp.name}_update`].bind(this));
+                //@ts-ignore
                 this[`on_${state_comp.name}_update`]();
             }
         }
     }
 }
-
+}
 /**
  * This is a mixin to be applied to Lit-Element web-components. For any stateVariables in the list will add a read-only property 
  * to the element named as the stateVariable. It will add an **applyTransition** method to dispatch the added 
@@ -406,7 +427,8 @@ export var statesMixin = (listOfComponents:Array<StateVariable|StateTransition|M
  * @param listOfComponents is a list of StateVariables and StateTransition to add to the web-component
  * @param baseClass The class on which the mixin is applied
  */
-export let litStatesMixin = (listOfComponents:Array<StateVariable|StateTransition|Message>, baseClass:any) => class extends baseMixin(listOfComponents, baseClass) {
+export function litStatesMixin (listOfComponents:Array<StateVariable|StateTransition|Message>, baseClass:litEl) {
+    return  class extends baseMixin(listOfComponents, baseClass) {
     connectedCallback(){
         if(super['connectedCallback'] !== undefined) {
             super.connectedCallback();
@@ -415,6 +437,7 @@ export let litStatesMixin = (listOfComponents:Array<StateVariable|StateTransitio
         for (let state_comp of listOfComponents) {
             
             if(state_comp instanceof Message){
+                //@ts-ignore
                 if(this[`gotMessage_${state_comp.name}`])
                     //@ts-ignore
                     state_comp.attachWatcher(this, this[`gotMessage_${state_comp.name}`].bind(this));
@@ -432,4 +455,5 @@ export let litStatesMixin = (listOfComponents:Array<StateVariable|StateTransitio
             this.requestUpdate();
         }
     }
+}
 }
