@@ -1,5 +1,5 @@
 import onChangeProxy from "./onChange.js"
-import {LitElement} from "lit-element"
+import type {LitElement} from "lit-element"
 
 
 var _isCallback_locked = false;
